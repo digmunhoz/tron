@@ -1,0 +1,85 @@
+x-env: &shared_envs
+    environment:
+      DB_HOST: database
+      DB_USER: admin
+      DB_PASSWORD: admin
+      DB_NAME: paas
+      DB_ENGINE: postgres
+      DB_PORT: 5432
+      DEBUG: True
+
+services:
+  database:
+    image: postgres:14.1
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=paas
+    ports:
+      - "5432:5432"
+    volumes:
+      - ${PWD}/volumes/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d paas -h localhost"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  migration:
+    image: api
+    pull_policy: never
+    <<: *shared_envs
+    command: alembic upgrade head
+    depends_on:
+      database:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+    image: api
+    <<: *shared_envs
+    volumes:
+      - ${PWD}/api:/app
+    ports:
+      - 8000:8000
+    depends_on:
+      database:
+        condition: service_healthy
+
+  k3s-server:
+    image: "rancher/k3s:${K3S_VERSION:-latest}"
+    command: server --https-listen-port 5443
+    tmpfs:
+    - /run
+    - /var/run
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+    privileged: true
+    environment:
+    - K3S_TOKEN=something
+    - K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml
+    - K3S_KUBECONFIG_MODE=666
+    volumes:
+    - ${PWD}/volumes/kubeconfig:/output
+    ports:
+    - 5443:5443
+
+  k3s-agent:
+    image: "rancher/k3s:${K3S_VERSION:-latest}"
+    tmpfs:
+    - /run
+    - /var/run
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+    privileged: true
+    environment:
+    - K3S_URL=https://k3s-server:5443
+    - K3S_TOKEN=something

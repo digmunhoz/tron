@@ -1,0 +1,8 @@
+TODO.md
+volumes/
+api/lib/
+api/include/
+api/bin/
+api/pyvenv.cfg
+*.pyc
+portal/
