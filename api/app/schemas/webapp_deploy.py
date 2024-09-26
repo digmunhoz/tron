@@ -20,6 +20,8 @@ class WebappDeployEndpoints(BaseModel):
     dest_protocol: WebappDeployProtocolType
     dest_port: int
 
+    class Config:
+        from_attributes = True
 
 class WebappDeployEnvs(BaseModel):
     key: str
@@ -71,6 +73,7 @@ class WebappDeployUpdate(WebappDeploy):
 
 class WebappDeployCompletedResponse(WebappDeploy):
     uuid: UUID
+    webapp: WebappReducedResponse
     workload: Workload
     image: str
     version: str
@@ -83,6 +86,7 @@ class WebappDeployCompletedResponse(WebappDeploy):
 
     class Config:
         from_attributes = True
+        from_orm = True
 
 
 class WebappDeployReducedResponse(WebappDeploy):

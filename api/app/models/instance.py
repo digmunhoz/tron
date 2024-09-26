@@ -22,5 +22,5 @@ class Instance(Base):
     updated_at = Column(DateTime, server_default=func.now(), server_onupdate=func.now(), nullable=False)
 
     __table_args__ = (
-        UniqueConstraint('cluster_id', 'uuid', name='instance_cluster_uuid'),
+        UniqueConstraint('cluster_id', 'webapp_deploy_id', name='webapp_deploy_cluster_id'),
     )

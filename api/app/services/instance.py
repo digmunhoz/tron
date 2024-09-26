@@ -4,6 +4,13 @@ import app.models.instance as InstanceModel
 import app.models.webapp_deploy as WebappDeployModel
 import app.models.cluster as ClusterModel
 import app.schemas.instance as InstanceSchema
+import app.schemas.webapp_deploy as WebappDeploySchema
+
+
+from app.k8s.client import K8sClient
+from app.services.kubernetes.webapp_instance_manager import (
+    KubernetesWebAppInstanceManager,
+)
 
 from sqlalchemy.orm import Session
 from uuid import uuid4
@@ -38,8 +45,45 @@ class InstanceService:
         if db_instance is None:
             raise HTTPException(status_code=404, detail="Instance not found")
 
-        db.delete(db_instance)
-        db.commit()
+        webapp_deploy = (
+            db.query(WebappDeployModel.WebappDeploy)
+            .filter(WebappDeployModel.WebappDeploy.uuid == db_instance.webapp_deploy.uuid)
+            .first()
+        )
+
+        cluster = (
+            db.query(ClusterModel.Cluster)
+            .filter(ClusterModel.Cluster.uuid == db_instance.cluster.uuid)
+            .first()
+        )
+
+        try:
+            webapp_deploy_serialized = {
+                "webapp_name": webapp_deploy.webapp.name,
+                "webapp_uuid": webapp_deploy.webapp.uuid,
+                "namespace_name": webapp_deploy.webapp.namespace.name,
+                "namespace_uuid": webapp_deploy.webapp.namespace.uuid,
+                "workload": webapp_deploy.workload.name,
+                "image": webapp_deploy.image,
+                "version": webapp_deploy.version,
+                "cpu_scaling_threshold": webapp_deploy.cpu_scaling_threshold,
+                "memory_scaling_threshold": webapp_deploy.memory_scaling_threshold,
+                "envs": [env for env in webapp_deploy.envs],
+                "secrets": [secret for secret in webapp_deploy.secrets],
+                "custom_metrics": webapp_deploy.custom_metrics,
+            }
+
+            k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+            k8s_instance_manager = KubernetesWebAppInstanceManager(k8s_client)
+            k8s_instance_manager.instance_management(webapp_deploy_serialized, operation="delete")
+
+            db.delete(db_instance)
+            db.commit()
+        except Exception as e:
+            message = {"status": "error", "message": f"{e}"}
+
+            raise HTTPException(status_code=400, detail=message)
+
         return {"detail": "Instance deleted successfully"}
 
     def upsert_instance(
@@ -53,6 +97,7 @@ class InstanceService:
             .filter(ClusterModel.Cluster.uuid == instance.cluster_uuid)
             .first()
         )
+
         webapp_deploy = (
             db.query(WebappDeployModel.WebappDeploy)
             .filter(WebappDeployModel.WebappDeploy.uuid == instance.webapp_deploy_uuid)
@@ -60,7 +105,9 @@ class InstanceService:
         )
 
         if cluster.environment.uuid != webapp_deploy.environment.uuid:
-            raise HTTPException(status_code=400, detail="Cluster is not associated with the environment")
+            raise HTTPException(
+                status_code=400, detail="Cluster is not associated with the environment"
+            )
 
         if instance_uuid:
             db_instance = (
@@ -72,11 +119,32 @@ class InstanceService:
                 db_instance.cluster_id = cluster.id
                 db_instance.webapp_deploy_id = webapp_deploy.id
                 try:
+
+                    webapp_deploy_serialized = {
+                        "webapp_name": webapp_deploy.webapp.name,
+                        "webapp_uuid": webapp_deploy.webapp.uuid,
+                        "namespace_name": webapp_deploy.webapp.namespace.name,
+                        "namespace_uuid": webapp_deploy.webapp.namespace.uuid,
+                        "workload": webapp_deploy.workload.name,
+                        "image": webapp_deploy.image,
+                        "version": webapp_deploy.version,
+                        "cpu_scaling_threshold": webapp_deploy.cpu_scaling_threshold,
+                        "memory_scaling_threshold": webapp_deploy.memory_scaling_threshold,
+                        "envs": [env for env in webapp_deploy.envs],
+                        "secrets": [secret for secret in webapp_deploy.secrets],
+                        "custom_metrics": webapp_deploy.custom_metrics,
+                    }
+
+                    k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+                    k8s_instance_manager = KubernetesWebAppInstanceManager(k8s_client)
+                    k8s_instance_manager.instance_management(webapp_deploy_serialized, operation="create")
+
                     db.commit()
+                    db.refresh(db_instance)
                 except Exception as e:
-                    message = {"status": "error", "message": f"{e._message}"}
+                    db.rollback()
+                    message = {"status": "error", "message": f"{e}"}
                     raise HTTPException(status_code=400, detail=message)
-                db.refresh(db_instance)
                 return db_instance
 
         new_instance = InstanceModel.Instance(
@@ -84,9 +152,33 @@ class InstanceService:
         )
         db.add(new_instance)
         try:
+
+            webapp_deploy_serialized = {
+                "webapp_name": webapp_deploy.webapp.name,
+                "webapp_uuid": webapp_deploy.webapp.uuid,
+                "namespace_name": webapp_deploy.webapp.namespace.name,
+                "namespace_uuid": webapp_deploy.webapp.namespace.uuid,
+                "workload": webapp_deploy.workload.name,
+                "image": webapp_deploy.image,
+                "version": webapp_deploy.version,
+                "cpu_scaling_threshold": webapp_deploy.cpu_scaling_threshold,
+                "memory_scaling_threshold": webapp_deploy.memory_scaling_threshold,
+                "envs": [env for env in webapp_deploy.envs],
+                "secrets": [secret for secret in webapp_deploy.secrets],
+                "custom_metrics": webapp_deploy.custom_metrics,
+            }
+
+            k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+            k8s_instance_manager = KubernetesWebAppInstanceManager(k8s_client)
+            k8s_instance_manager.instance_management(webapp_deploy_serialized, operation="create")
+
             db.commit()
+            db.refresh(new_instance)
+
         except Exception as e:
-            message = {"status": "error", "message": f"{e._message}"}
+
+            db.rollback()
+            message = {"status": "error", "message": f"{e}"}
+
             raise HTTPException(status_code=400, detail=message)
-        db.refresh(new_instance)
         return new_instance

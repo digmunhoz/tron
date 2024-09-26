@@ -8,7 +8,7 @@ from uuid import UUID
 router = APIRouter()
 
 
-@router.post("/instances", response_model=schemas.Instance)
+@router.post("/instances/", response_model=schemas.Instance)
 def create_instance(
     instance: schemas.InstanceCreate,
     uuid: UUID = None,

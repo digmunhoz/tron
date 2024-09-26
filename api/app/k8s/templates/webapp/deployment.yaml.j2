@@ -1,0 +1,88 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ webapp_uuid }}"
+  namespace: "{{ namespace_uuid }}"
+  labels:
+    app: "{{ webapp_uuid }}"
+    environment: "production"
+    alias: "{{ webapp_name }}"
+    namespace: "{{ namespace_name }}"
+    tier: "tier-3"
+    type: "web"
+spec:
+  selector:
+    matchLabels:
+      app: {{ webapp_uuid }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "false"
+      labels:
+        app: {{ webapp_uuid }}
+        environment: "production"
+        alias: {{ webapp_name }}
+        namespace: "{{ namespace_name }}"
+        tier: "tier-3"
+        type: "web"
+    spec:
+      automountServiceAccountToken: true
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - "teste"
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: "teste"
+        env:
+        image:  "{{ image }}:{{ version }}"
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthcheck
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 3
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthcheck
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 3
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "250m"
+            memory: "512Mi"
+      dnsConfig:
+        options:
+        - name: ndots
+          value: "1"
+      nodeSelector:
+        workload: {{ workload }}
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: true
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

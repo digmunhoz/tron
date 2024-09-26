@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: "svc-{{ webapp_uuid }}"
+  namespace: "{{ namespace_uuid }}"
+  labels:
+    app: "{{ webapp_uuid }}"
+    environment: "production"
+    alias: "{{ webapp_name }}"
+    namespace: "{{ namespace_name }}"
+    tier: "tier-3"
+    type: "web"
+spec:
+  ports:
+      - name: "port-80"
+        port: 80
+        protocol: TCP
+        targetPort: 80
+  selector:
+    app: "{{ webapp_uuid }}"
+  sessionAffinity: None
+  type:
+      ClusterIP
