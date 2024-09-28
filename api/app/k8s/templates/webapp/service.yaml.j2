@@ -5,17 +5,19 @@ metadata:
   namespace: "{{ namespace_uuid }}"
   labels:
     app: "{{ webapp_uuid }}"
-    environment: "production"
+    environment: "{{ environment }}"
     alias: "{{ webapp_name }}"
     namespace: "{{ namespace_name }}"
     tier: "tier-3"
     type: "web"
 spec:
   ports:
-      - name: "port-80"
-        port: 80
-        protocol: TCP
-        targetPort: 80
+    {% for endpoint in endpoints -%}
+    - name: port-{{endpoint.source_port}}
+      port: {{endpoint.source_port}}
+      protocol: TCP
+      targetPort: {{endpoint.dest_port}}
+    {% endfor %}
   selector:
     app: "{{ webapp_uuid }}"
   sessionAffinity: None

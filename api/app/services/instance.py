@@ -3,10 +3,10 @@ from fastapi import HTTPException
 import app.models.instance as InstanceModel
 import app.models.webapp_deploy as WebappDeployModel
 import app.models.cluster as ClusterModel
+import app.models.environment as EnvironmentModel
 import app.schemas.instance as InstanceSchema
-import app.schemas.webapp_deploy as WebappDeploySchema
 
-
+from app.utils.serializers import serialize_webapp
 from app.k8s.client import K8sClient
 from app.services.kubernetes.webapp_instance_manager import (
     KubernetesWebAppInstanceManager,
@@ -153,20 +153,7 @@ class InstanceService:
         db.add(new_instance)
         try:
 
-            webapp_deploy_serialized = {
-                "webapp_name": webapp_deploy.webapp.name,
-                "webapp_uuid": webapp_deploy.webapp.uuid,
-                "namespace_name": webapp_deploy.webapp.namespace.name,
-                "namespace_uuid": webapp_deploy.webapp.namespace.uuid,
-                "workload": webapp_deploy.workload.name,
-                "image": webapp_deploy.image,
-                "version": webapp_deploy.version,
-                "cpu_scaling_threshold": webapp_deploy.cpu_scaling_threshold,
-                "memory_scaling_threshold": webapp_deploy.memory_scaling_threshold,
-                "envs": [env for env in webapp_deploy.envs],
-                "secrets": [secret for secret in webapp_deploy.secrets],
-                "custom_metrics": webapp_deploy.custom_metrics,
-            }
+            webapp_deploy_serialized = serialize_webapp(webapp_deploy)
 
             k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
             k8s_instance_manager = KubernetesWebAppInstanceManager(k8s_client)

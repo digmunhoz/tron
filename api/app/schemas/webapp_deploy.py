@@ -14,6 +14,11 @@ class WebappDeployProtocolType(str, Enum):
     tls = "tls"
 
 
+class WebappDeployHealthcheckProtocolType(str, Enum):
+    http = "http"
+    tcp = "tcp"
+
+
 class WebappDeployEndpoints(BaseModel):
     source_protocol: WebappDeployProtocolType
     source_port: int
@@ -22,6 +27,7 @@ class WebappDeployEndpoints(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class WebappDeployEnvs(BaseModel):
     key: str
@@ -37,6 +43,16 @@ class WebappDeployCustromMetrics(BaseModel):
     enabled: bool = False
     path: str = "/metrics"
     port: int
+
+
+class WebappDeployHealthcheck(BaseModel):
+    path: str = "/healthcheck"
+    protocol: WebappDeployHealthcheckProtocolType
+    port: conint(ge=1, le=65535) = 80
+    timeout: int = 3
+    interval: int = 15
+    initial_interval: int = 15
+    failure_threshold: int = 2
 
 
 class WebappDeploy(BaseModel):
@@ -57,6 +73,7 @@ class WebappDeployCreate(WebappDeploy):
     secrets: List[WebappDeploySecrets]
     cpu_scaling_threshold: conint(ge=0, le=100) = 80
     memory_scaling_threshold: conint(ge=0, le=100) = 80
+    healthcheck: WebappDeployHealthcheck
 
 
 class WebappDeployUpdate(WebappDeploy):
@@ -69,6 +86,7 @@ class WebappDeployUpdate(WebappDeploy):
     secrets: List[WebappDeploySecrets]
     cpu_scaling_threshold: conint(ge=0, le=100) = 80
     memory_scaling_threshold: conint(ge=0, le=100) = 80
+    healthcheck: WebappDeployHealthcheck
 
 
 class WebappDeployCompletedResponse(WebappDeploy):
@@ -83,6 +101,7 @@ class WebappDeployCompletedResponse(WebappDeploy):
     secrets: List[WebappDeploySecrets]
     cpu_scaling_threshold: conint(ge=0, le=100) = 80
     memory_scaling_threshold: conint(ge=0, le=100) = 80
+    healthcheck: WebappDeployHealthcheck
 
     class Config:
         from_attributes = True
@@ -97,4 +116,3 @@ class WebappDeployReducedResponse(WebappDeploy):
 
     class Config:
         from_attributes = True
-

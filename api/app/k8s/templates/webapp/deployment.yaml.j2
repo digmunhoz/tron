@@ -6,7 +6,7 @@ metadata:
   namespace: "{{ namespace_uuid }}"
   labels:
     app: "{{ webapp_uuid }}"
-    environment: "production"
+    environment: "{{ environment }}"
     alias: "{{ webapp_name }}"
     namespace: "{{ namespace_name }}"
     tier: "tier-3"
@@ -28,7 +28,7 @@ spec:
         prometheus.io/path: "{{ custom_metrics.path | string }}"
       labels:
         app: {{ webapp_uuid }}
-        environment: "production"
+        environment: "{{ environment }}"
         alias: {{ webapp_name }}
         namespace: "{{ namespace_name }}"
         tier: "tier-3"
@@ -55,25 +55,30 @@ spec:
         image:  "{{ image }}:{{ version }}"
         imagePullPolicy: Always
         livenessProbe:
-          failureThreshold: 3
+          {% if healthcheck.protocol == "http" -%}
           httpGet:
-            path: /healthcheck
-            port: 80
+            path: {{ healthcheck.path }}
+            port: {{ healthcheck.port | int }}
             scheme: HTTP
-          initialDelaySeconds: 15
-          periodSeconds: 15
+          {% elif healthcheck.protocol == "tcp" -%}
+          tcpSocket:
+            port: {{ healthcheck.port | int }}
+          {% endif %}
+          failureThreshold: {{ healthcheck.failure_threshold | int }}
+          initialDelaySeconds: {{ healthcheck.initial_interval | int }}
+          periodSeconds: {{ healthcheck.interval | int }}
           successThreshold: 1
-          timeoutSeconds: 3
+          timeoutSeconds: {{ healthcheck.timeout | int }}
         readinessProbe:
-          failureThreshold: 3
           httpGet:
             path: /healthcheck
             port: 80
             scheme: HTTP
-          initialDelaySeconds: 15
-          periodSeconds: 15
+          failureThreshold: {{ healthcheck.failure_threshold | int }}
+          initialDelaySeconds: {{ healthcheck.initial_interval | int }}
+          periodSeconds: {{ healthcheck.interval | int }}
           successThreshold: 1
-          timeoutSeconds: 3
+          timeoutSeconds: {{ healthcheck.timeout | int }}
         resources:
           requests:
             cpu: "250m"

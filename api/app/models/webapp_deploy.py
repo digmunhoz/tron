@@ -39,6 +39,7 @@ class WebappDeploy(Base):
     endpoints = Column(JSON, nullable=False)
     envs = Column(JSON, nullable=True)
     secrets = Column(JSON, nullable=True)
+    healthcheck = Column(JSON, nullable=False)
 
     instances = relationship("Instance", back_populates="webapp_deploy")
 
@@ -46,5 +47,5 @@ class WebappDeploy(Base):
     updated_at = Column(DateTime, server_default=func.now(), server_onupdate=func.now(), nullable=False)
 
     __table_args__ = (
-        UniqueConstraint('environment_id', 'uuid', name='uix_environment_uuid'),
+        UniqueConstraint('environment_id', 'webapp_id', name='uix_environment_uuid'),
     )

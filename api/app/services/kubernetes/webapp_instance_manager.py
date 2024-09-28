@@ -30,9 +30,10 @@ class KubernetesWebAppInstanceManager:
         try:
             template = env.get_template(template_name)
         except Exception as e:
-            raise FileNotFoundError(f"Template {template_name} not found")
+            raise FileNotFoundError(f"Template {template_name} rendering error: {e}")
 
         rendered_yaml = template.render(variables)
+        print(rendered_yaml)
 
         try:
             return yaml.safe_load(rendered_yaml)

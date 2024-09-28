@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from uuid import uuid4
 from uuid import UUID
 from app.k8s.client import K8sClient
+from app.utils.serializers import serialize_webapp
 from app.services.kubernetes.webapp_instance_manager import (
     KubernetesWebAppInstanceManager,
 )
@@ -55,6 +56,7 @@ class WebappDeployService:
             db_webapp_deploy.memory_scaling_threshold = (
                 webapp_deploy.memory_scaling_threshold
             )
+            db_webapp_deploy.healthcheck = webapp_deploy.healthcheck.model_dump()
 
             instances = (
                 db.query(InstanceModel.Instance)
@@ -71,20 +73,7 @@ class WebappDeployService:
                         .first()
                     )
 
-                    webapp_deploy_serialized = {
-                        "webapp_name": db_webapp_deploy.webapp.name,
-                        "webapp_uuid": db_webapp_deploy.webapp.uuid,
-                        "namespace_name": db_webapp_deploy.webapp.namespace.name,
-                        "namespace_uuid": db_webapp_deploy.webapp.namespace.uuid,
-                        "workload": workload.name,
-                        "image": webapp_deploy.image,
-                        "version": webapp_deploy.version,
-                        "cpu_scaling_threshold": webapp_deploy.cpu_scaling_threshold,
-                        "memory_scaling_threshold": webapp_deploy.memory_scaling_threshold,
-                        "envs": [env for env in webapp_deploy.envs],
-                        "secrets": [secret for secret in webapp_deploy.secrets],
-                        "custom_metrics": webapp_deploy.custom_metrics,
-                    }
+                    webapp_deploy_serialized = serialize_webapp(db_webapp_deploy)
 
                     k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
                     k8s_instance_manager = KubernetesWebAppInstanceManager(k8s_client)
@@ -105,15 +94,6 @@ class WebappDeployService:
                 uuid=uuid4(),
                 image=webapp_deploy.image,
                 version=webapp_deploy.version,
-                environment_id=(
-                    db.query(EnvironmentModel.Environment)
-                    .filter(
-                        EnvironmentModel.Environment.uuid
-                        == webapp_deploy.environment_uuid
-                    )
-                    .first()
-                    .id
-                ),
                 webapp_id=(
                     db.query(WebappModel.Webapp)
                     .filter(WebappModel.Webapp.uuid == webapp_deploy.webapp_uuid)
@@ -126,6 +106,14 @@ class WebappDeployService:
                     .first()
                     .id
                 ),
+                environment_id=(
+                    db.query(EnvironmentModel.Environment)
+                    .filter(
+                        EnvironmentModel.Environment.uuid
+                        == webapp_deploy.environment_uuid
+                    )
+                    .first()
+                ).id,
                 custom_metrics=webapp_deploy.custom_metrics.model_dump(),
                 endpoints=[
                     endpoint.model_dump() for endpoint in webapp_deploy.endpoints
@@ -134,10 +122,18 @@ class WebappDeployService:
                 secrets=[secret.model_dump() for secret in webapp_deploy.secrets],
                 cpu_scaling_threshold=webapp_deploy.cpu_scaling_threshold,
                 memory_scaling_threshold=webapp_deploy.memory_scaling_threshold,
+                healthcheck=webapp_deploy.healthcheck.model_dump(),
             )
             db.add(db_webapp_deploy)
-            db.commit()
-            db.refresh(db_webapp_deploy)
+
+            try:
+                db.commit()
+                db.refresh(db_webapp_deploy)
+            except Exception as e:
+                db.rollback()
+                print(dir(e))
+                message = {"status": "error", "message": f"{e._message}"}
+                raise HTTPException(status_code=400, detail=message)
 
         return db_webapp_deploy
 
