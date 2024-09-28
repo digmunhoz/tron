@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from uuid import UUID
 
@@ -24,8 +24,9 @@ class ClusterResponse(BaseModel):
     name: str
     api_address: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
 
 class ClusterResponseWithValidation(BaseModel):
@@ -35,8 +36,9 @@ class ClusterResponseWithValidation(BaseModel):
     environment: Environment
     detail: dict
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
 
 class ClusterCompletedResponse(BaseModel):
@@ -47,12 +49,14 @@ class ClusterCompletedResponse(BaseModel):
     available_memory: Optional[int]
     environment: Environment
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
 
 class Cluster(ClusterBase):
     uuid: UUID
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True,
+    )

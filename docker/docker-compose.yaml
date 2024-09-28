@@ -48,6 +48,17 @@ services:
       database:
         condition: service_healthy
 
+  api-test:
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+    image: api
+    environment:
+      - PYTHONPATH=./
+    command: pytest tests/
+    volumes:
+      - ${PWD}/api:/app
+
   k3s-server:
     image: "rancher/k3s:${K3S_VERSION:-latest}"
     command: server --https-listen-port 5443

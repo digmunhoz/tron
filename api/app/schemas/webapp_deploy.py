@@ -1,4 +1,4 @@
-from pydantic import BaseModel, conint
+from pydantic import BaseModel, conint, ConfigDict
 from enum import Enum
 from typing import List
 from uuid import UUID
@@ -25,8 +25,9 @@ class WebappDeployEndpoints(BaseModel):
     dest_protocol: WebappDeployProtocolType
     dest_port: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
 
 class WebappDeployEnvs(BaseModel):
@@ -57,8 +58,9 @@ class WebappDeployHealthcheck(BaseModel):
 
 class WebappDeploy(BaseModel):
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
 
 class WebappDeployCreate(WebappDeploy):
@@ -103,9 +105,9 @@ class WebappDeployCompletedResponse(WebappDeploy):
     memory_scaling_threshold: conint(ge=0, le=100) = 80
     healthcheck: WebappDeployHealthcheck
 
-    class Config:
-        from_attributes = True
-        from_orm = True
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
 
 class WebappDeployReducedResponse(WebappDeploy):
@@ -114,5 +116,6 @@ class WebappDeployReducedResponse(WebappDeploy):
     webapp: WebappReducedResponse
     environment: Environment
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True,
+    )

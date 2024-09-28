@@ -71,4 +71,5 @@ class NamespaceService:
         db.add(new_namespace)
         db.commit()
         db.refresh(new_namespace)
+
         return new_namespace

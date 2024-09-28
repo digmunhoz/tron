@@ -1,14 +1,18 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from uuid import UUID
+
 
 class WorkloadBase(BaseModel):
     name: str
 
+
 class WorkloadCreate(WorkloadBase):
     pass
+
 
 class Workload(WorkloadBase):
     uuid: UUID
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
