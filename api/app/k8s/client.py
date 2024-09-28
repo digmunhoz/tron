@@ -9,31 +9,37 @@ K8S_API_MAPPING = {
         client.AppsV1Api,
         "create_namespaced_deployment",
         "delete_namespaced_deployment",
+        "replace_namespaced_deployment",
     ),
     "Service": (
         client.CoreV1Api,
         "create_namespaced_service",
         "delete_namespaced_service",
+        "replace_namespaced_service",
     ),
     "ConfigMap": (
         client.CoreV1Api,
         "create_namespaced_config_map",
         "delete_namespaced_config_map",
+        "replace_namespaced_config_map",
     ),
     "Secret": (
         client.CoreV1Api,
         "create_namespaced_secret",
         "delete_namespaced_secret",
+        "replace_namespaced_secret",
     ),
     "Ingress": (
         client.NetworkingV1Api,
         "create_namespaced_ingress",
         "delete_namespaced_ingress",
+        "replace_namespaced_ingress",
     ),
     "HorizontalPodAutoscaler": (
         client.AutoscalingV2Api,
         "create_namespaced_horizontal_pod_autoscaler",
         "delete_namespaced_horizontal_pod_autoscaler",
+        "replace_namespaced_horizontal_pod_autoscaler",
     ),
 }
 
@@ -159,7 +165,7 @@ class K8sClient:
             if not kind or not api_version:
                 raise ValueError("YAML must include 'kind' and 'apiVersion' fields.")
 
-            api_class, create_api_method, delete_api_method = K8S_API_MAPPING.get(kind)
+            api_class, create_method, delete_method, replace_method = K8S_API_MAPPING.get(kind)
 
             if not api_class:
                 raise ValueError(f"No API found for resource kind: {kind}")
@@ -167,11 +173,15 @@ class K8sClient:
             api_instance = api_class(self.api_client)
 
             if operation == "create":
-                getattr(api_instance, create_api_method)(
+                getattr(api_instance, create_method)(
                     namespace=namespace, body=document
                 )
+            elif operation == "update":
+                getattr(api_instance, replace_method)(
+                    name=name, namespace=namespace, body=document
+                )
             elif operation == "delete":
-                getattr(api_instance, delete_api_method)(
+                getattr(api_instance, delete_method)(
                     name=name, namespace=namespace, body=client.V1DeleteOptions()
                 )
 

@@ -2,12 +2,17 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from uuid import uuid4
 from uuid import UUID
+from app.k8s.client import K8sClient
+from app.services.kubernetes.webapp_instance_manager import (
+    KubernetesWebAppInstanceManager,
+)
 
 import app.models.webapp as WebappModel
 import app.models.environment as EnvironmentModel
 import app.models.webapp_deploy as WebappDeployModel
+import app.models.cluster as ClusterModel
 import app.models.workload as WorkloadModel
-
+import app.models.instance as InstanceModel
 import app.schemas.webapp_deploy as WebappDeploySchema
 
 
@@ -28,12 +33,14 @@ class WebappDeployService:
 
             if db_webapp_deploy is None:
                 raise HTTPException(status_code=404, detail="Webapp Deploy not found")
-            db_webapp_deploy.workload_id = (
+
+            workload = (
                 db.query(WorkloadModel.Workload)
                 .filter(WorkloadModel.Workload.uuid == webapp_deploy.workload_uuid)
                 .first()
-                .id
             )
+
+            db_webapp_deploy.workload_id = workload.id
             db_webapp_deploy.image = webapp_deploy.image
             db_webapp_deploy.version = webapp_deploy.version
             db_webapp_deploy.custom_metrics = webapp_deploy.custom_metrics.model_dump()
@@ -48,6 +55,51 @@ class WebappDeployService:
             db_webapp_deploy.memory_scaling_threshold = (
                 webapp_deploy.memory_scaling_threshold
             )
+
+            instances = (
+                db.query(InstanceModel.Instance)
+                .filter(InstanceModel.Instance.webapp_deploy_id == db_webapp_deploy.id)
+                .all()
+            )
+
+            try:
+                for instance in instances:
+
+                    cluster = (
+                        db.query(ClusterModel.Cluster)
+                        .filter(ClusterModel.Cluster.id == instance.cluster_id)
+                        .first()
+                    )
+
+                    webapp_deploy_serialized = {
+                        "webapp_name": db_webapp_deploy.webapp.name,
+                        "webapp_uuid": db_webapp_deploy.webapp.uuid,
+                        "namespace_name": db_webapp_deploy.webapp.namespace.name,
+                        "namespace_uuid": db_webapp_deploy.webapp.namespace.uuid,
+                        "workload": workload.name,
+                        "image": webapp_deploy.image,
+                        "version": webapp_deploy.version,
+                        "cpu_scaling_threshold": webapp_deploy.cpu_scaling_threshold,
+                        "memory_scaling_threshold": webapp_deploy.memory_scaling_threshold,
+                        "envs": [env for env in webapp_deploy.envs],
+                        "secrets": [secret for secret in webapp_deploy.secrets],
+                        "custom_metrics": webapp_deploy.custom_metrics,
+                    }
+
+                    k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+                    k8s_instance_manager = KubernetesWebAppInstanceManager(k8s_client)
+                    k8s_instance_manager.instance_management(
+                        webapp_deploy_serialized, operation="update"
+                    )
+
+                    db.commit()
+                    db.refresh(db_webapp_deploy)
+
+            except Exception as e:
+                db.rollback()
+                message = {"status": "error", "message": f"{e}"}
+                raise HTTPException(status_code=400, detail=message)
+
         else:
             db_webapp_deploy = WebappDeployModel.WebappDeploy(
                 uuid=uuid4(),
@@ -84,9 +136,9 @@ class WebappDeployService:
                 memory_scaling_threshold=webapp_deploy.memory_scaling_threshold,
             )
             db.add(db_webapp_deploy)
+            db.commit()
+            db.refresh(db_webapp_deploy)
 
-        db.commit()
-        db.refresh(db_webapp_deploy)
         return db_webapp_deploy
 
     def get_webapp_deploy(
