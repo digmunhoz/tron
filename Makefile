@@ -7,6 +7,9 @@ api-migrate:
 api-migration:
 	@docker compose -f docker/docker-compose.yaml run --rm api sh -c 'alembic upgrade head'
 
+api-test:
+	@docker compose -f docker/docker-compose.yaml run --rm api sh -c 'PYTHONPATH=./ pytest tests/'
+
 build:
 	@docker compose -f docker/docker-compose.yaml build
 

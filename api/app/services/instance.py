@@ -6,7 +6,7 @@ import app.models.cluster as ClusterModel
 import app.models.environment as EnvironmentModel
 import app.schemas.instance as InstanceSchema
 
-from app.utils.serializers import serialize_webapp
+from app.helpers.serializers import serialize_webapp_deploy
 from app.k8s.client import K8sClient
 from app.services.kubernetes.webapp_instance_manager import (
     KubernetesWebAppInstanceManager,
@@ -153,7 +153,7 @@ class InstanceService:
         db.add(new_instance)
         try:
 
-            webapp_deploy_serialized = serialize_webapp(webapp_deploy)
+            webapp_deploy_serialized = serialize_webapp_deploy(webapp_deploy)
 
             k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
             k8s_instance_manager = KubernetesWebAppInstanceManager(k8s_client)

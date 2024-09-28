@@ -1,5 +1,5 @@
 
-def serialize_webapp(webapp_deploy):
+def serialize_webapp_deploy(webapp_deploy):
     return {
         "webapp_name": webapp_deploy.webapp.name,
         "webapp_uuid": webapp_deploy.webapp.uuid,

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from uuid import uuid4
 from uuid import UUID
 from app.k8s.client import K8sClient
-from app.utils.serializers import serialize_webapp
+from app.helpers.serializers import serialize_webapp_deploy
 from app.services.kubernetes.webapp_instance_manager import (
     KubernetesWebAppInstanceManager,
 )
@@ -73,7 +73,7 @@ class WebappDeployService:
                         .first()
                     )
 
-                    webapp_deploy_serialized = serialize_webapp(db_webapp_deploy)
+                    webapp_deploy_serialized = serialize_webapp_deploy(db_webapp_deploy)
 
                     k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
                     k8s_instance_manager = KubernetesWebAppInstanceManager(k8s_client)
