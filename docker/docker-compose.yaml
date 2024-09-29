@@ -25,15 +25,6 @@ services:
       timeout: 10s
       retries: 10
 
-  migration:
-    image: api
-    pull_policy: never
-    <<: *shared_envs
-    command: alembic upgrade head
-    depends_on:
-      database:
-        condition: service_healthy
-
   api:
     build:
       context: ../api
