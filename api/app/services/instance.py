@@ -74,8 +74,8 @@ class InstanceService:
             }
 
             k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
-            k8s_instance_manager = KubernetesWebAppInstanceManager(k8s_client)
-            k8s_instance_manager.instance_management(webapp_deploy_serialized, operation="delete")
+            kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(webapp_deploy_serialized)
+            k8s_client.apply_or_delete_yaml_to_k8s(kubernetes_payload, operation="delete")
 
             db.delete(db_instance)
             db.commit()
@@ -136,8 +136,8 @@ class InstanceService:
                     }
 
                     k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
-                    k8s_instance_manager = KubernetesWebAppInstanceManager(k8s_client)
-                    k8s_instance_manager.instance_management(webapp_deploy_serialized, operation="create")
+                    kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(webapp_deploy_serialized)
+                    k8s_client.apply_or_delete_yaml_to_k8s(kubernetes_payload, operation="create")
 
                     db.commit()
                     db.refresh(db_instance)
@@ -156,8 +156,8 @@ class InstanceService:
             webapp_deploy_serialized = serialize_webapp_deploy(webapp_deploy)
 
             k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
-            k8s_instance_manager = KubernetesWebAppInstanceManager(k8s_client)
-            k8s_instance_manager.instance_management(webapp_deploy_serialized, operation="create")
+            kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(webapp_deploy_serialized)
+            k8s_client.apply_or_delete_yaml_to_k8s(kubernetes_payload, operation="create")
 
             db.commit()
             db.refresh(new_instance)
