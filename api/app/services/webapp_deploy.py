@@ -76,8 +76,14 @@ class WebappDeployService:
                     webapp_deploy_serialized = serialize_webapp_deploy(db_webapp_deploy)
 
                     k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
-                    kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(webapp_deploy_serialized)
-                    k8s_client.apply_or_delete_yaml_to_k8s(kubernetes_payload, operation="update")
+                    kubernetes_payload = (
+                        KubernetesWebAppInstanceManager.instance_management(
+                            webapp_deploy_serialized
+                        )
+                    )
+                    k8s_client.apply_or_delete_yaml_to_k8s(
+                        kubernetes_payload, operation="update"
+                    )
 
                     db.commit()
                     db.refresh(db_webapp_deploy)
@@ -88,30 +94,37 @@ class WebappDeployService:
                 raise HTTPException(status_code=400, detail=message)
 
         else:
+
+            workload = (
+                db.query(WorkloadModel.Workload)
+                .filter(WorkloadModel.Workload.uuid == webapp_deploy.workload_uuid)
+                .first()
+            )
+
+            if not workload:
+                raise HTTPException(status_code=404, detail="Workload not found")
+
+            webapp = (
+                db.query(WebappModel.Webapp)
+                .filter(WebappModel.Webapp.uuid == webapp_deploy.webapp_uuid)
+                .first()
+            )
+
+            environment = (
+                db.query(EnvironmentModel.Environment)
+                .filter(
+                    EnvironmentModel.Environment.uuid == webapp_deploy.environment_uuid
+                )
+                .first()
+            )
+
             db_webapp_deploy = WebappDeployModel.WebappDeploy(
                 uuid=uuid4(),
                 image=webapp_deploy.image,
                 version=webapp_deploy.version,
-                webapp_id=(
-                    db.query(WebappModel.Webapp)
-                    .filter(WebappModel.Webapp.uuid == webapp_deploy.webapp_uuid)
-                    .first()
-                    .id
-                ),
-                workload_id=(
-                    db.query(WorkloadModel.Workload)
-                    .filter(WorkloadModel.Workload.uuid == webapp_deploy.workload_uuid)
-                    .first()
-                    .id
-                ),
-                environment_id=(
-                    db.query(EnvironmentModel.Environment)
-                    .filter(
-                        EnvironmentModel.Environment.uuid
-                        == webapp_deploy.environment_uuid
-                    )
-                    .first()
-                ).id,
+                webapp_id=webapp.id,
+                workload_id=workload.id,
+                environment_id=environment.id,
                 custom_metrics=webapp_deploy.custom_metrics.model_dump(),
                 endpoints=[
                     endpoint.model_dump() for endpoint in webapp_deploy.endpoints

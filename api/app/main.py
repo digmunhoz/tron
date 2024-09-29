@@ -6,9 +6,14 @@ from .database import Base, engine
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+app = FastAPI(
+    title="Tron",
+    summary="Platform as a Service built on top of kubernetes",
+    version="1.0.0",
+)
 
 ROUTERS_PATH = "./app/routers"
+
 
 def include_all_routers(app: FastAPI):
     for file in os.listdir(ROUTERS_PATH):
@@ -20,5 +25,6 @@ def include_all_routers(app: FastAPI):
 
             if hasattr(module, "router"):
                 app.include_router(module.router)
+
 
 include_all_routers(app)

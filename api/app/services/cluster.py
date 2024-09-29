@@ -40,18 +40,21 @@ class ClusterService:
                 db.refresh(db_cluster)
                 return db_cluster
 
-        environment_id = (
+        environment = (
             db.query(EnvironmentModel.Environment)
             .filter(EnvironmentModel.Environment.uuid == cluster.environment_uuid)
             .first()
-        ).id
+        )
+
+        if not environment:
+            raise HTTPException(status_code=404, detail="Environment not found")
 
         new_cluster = ClusterModel.Cluster(
             uuid=uuid4(),
             name=cluster.name,
             api_address=cluster.api_address,
             token=cluster.token,
-            environment_id=environment_id,
+            environment_id=environment.id,
         )
 
         db.add(new_cluster)

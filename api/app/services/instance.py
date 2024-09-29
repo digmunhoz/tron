@@ -47,7 +47,9 @@ class InstanceService:
 
         webapp_deploy = (
             db.query(WebappDeployModel.WebappDeploy)
-            .filter(WebappDeployModel.WebappDeploy.uuid == db_instance.webapp_deploy.uuid)
+            .filter(
+                WebappDeployModel.WebappDeploy.uuid == db_instance.webapp_deploy.uuid
+            )
             .first()
         )
 
@@ -58,24 +60,17 @@ class InstanceService:
         )
 
         try:
-            webapp_deploy_serialized = {
-                "webapp_name": webapp_deploy.webapp.name,
-                "webapp_uuid": webapp_deploy.webapp.uuid,
-                "namespace_name": webapp_deploy.webapp.namespace.name,
-                "namespace_uuid": webapp_deploy.webapp.namespace.uuid,
-                "workload": webapp_deploy.workload.name,
-                "image": webapp_deploy.image,
-                "version": webapp_deploy.version,
-                "cpu_scaling_threshold": webapp_deploy.cpu_scaling_threshold,
-                "memory_scaling_threshold": webapp_deploy.memory_scaling_threshold,
-                "envs": [env for env in webapp_deploy.envs],
-                "secrets": [secret for secret in webapp_deploy.secrets],
-                "custom_metrics": webapp_deploy.custom_metrics,
-            }
+
+            webapp_deploy_serialized = serialize_webapp_deploy(webapp_deploy)
+
+            kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(
+                webapp_deploy_serialized
+            )
 
             k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
-            kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(webapp_deploy_serialized)
-            k8s_client.apply_or_delete_yaml_to_k8s(kubernetes_payload, operation="delete")
+            k8s_client.apply_or_delete_yaml_to_k8s(
+                kubernetes_payload, operation="delete"
+            )
 
             db.delete(db_instance)
             db.commit()
@@ -120,24 +115,17 @@ class InstanceService:
                 db_instance.webapp_deploy_id = webapp_deploy.id
                 try:
 
-                    webapp_deploy_serialized = {
-                        "webapp_name": webapp_deploy.webapp.name,
-                        "webapp_uuid": webapp_deploy.webapp.uuid,
-                        "namespace_name": webapp_deploy.webapp.namespace.name,
-                        "namespace_uuid": webapp_deploy.webapp.namespace.uuid,
-                        "workload": webapp_deploy.workload.name,
-                        "image": webapp_deploy.image,
-                        "version": webapp_deploy.version,
-                        "cpu_scaling_threshold": webapp_deploy.cpu_scaling_threshold,
-                        "memory_scaling_threshold": webapp_deploy.memory_scaling_threshold,
-                        "envs": [env for env in webapp_deploy.envs],
-                        "secrets": [secret for secret in webapp_deploy.secrets],
-                        "custom_metrics": webapp_deploy.custom_metrics,
-                    }
+                    webapp_deploy_serialized = serialize_webapp_deploy(webapp_deploy)
 
                     k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
-                    kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(webapp_deploy_serialized)
-                    k8s_client.apply_or_delete_yaml_to_k8s(kubernetes_payload, operation="create")
+                    kubernetes_payload = (
+                        KubernetesWebAppInstanceManager.instance_management(
+                            webapp_deploy_serialized
+                        )
+                    )
+                    k8s_client.apply_or_delete_yaml_to_k8s(
+                        kubernetes_payload, operation="create"
+                    )
 
                     db.commit()
                     db.refresh(db_instance)
@@ -156,8 +144,12 @@ class InstanceService:
             webapp_deploy_serialized = serialize_webapp_deploy(webapp_deploy)
 
             k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
-            kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(webapp_deploy_serialized)
-            k8s_client.apply_or_delete_yaml_to_k8s(kubernetes_payload, operation="create")
+            kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(
+                webapp_deploy_serialized
+            )
+            k8s_client.apply_or_delete_yaml_to_k8s(
+                kubernetes_payload, operation="create"
+            )
 
             db.commit()
             db.refresh(new_instance)
