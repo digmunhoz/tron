@@ -141,6 +141,7 @@ curl -X POST "http://localhost:8000/clusters/" \
 - `status`: Shows the status of the services.
 - `api-migrate`: Runs database migrations.
 - `api-migration`: Creates a new migration file.
+- `api-test`: Runs API tests.
 
 ---
 
