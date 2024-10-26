@@ -72,7 +72,6 @@ services:
     - K3S_KUBECONFIG_MODE=666
     volumes:
     - ${PWD}/volumes/kubeconfig:/output
-    platform: linux/x86_64
     ports:
     - 5443:5443
 
@@ -87,7 +86,6 @@ services:
         soft: 65535
         hard: 65535
     privileged: true
-    platform: linux/x86_64
     environment:
     - K3S_URL=https://k3s-server:5443
     - K3S_TOKEN=something
