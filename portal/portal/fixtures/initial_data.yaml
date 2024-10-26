@@ -1,0 +1,11 @@
+- model: portal.user
+  fields:
+    username: admin
+    first_name: Administrator
+    last_name: User
+    email: admin@example.com
+    created_at: "1990-05-01 10:09:00-0300"
+    updated_at: "1990-05-01 10:09:00-0300"
+    password: pbkdf2_sha256$120000$tPvIgef4ByAi$Ye/7ZAAtfkXOUy2LBuZFbIVPBcr+yofA/EccCd9NZVk=
+    is_active: 1
+    is_superuser: 1

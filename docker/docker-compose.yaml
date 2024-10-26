@@ -1,55 +1,105 @@
-x-env: &shared_envs
-    environment:
-      DB_HOST: database
-      DB_USER: admin
-      DB_PASSWORD: admin
-      DB_NAME: paas
-      DB_ENGINE: postgres
-      DB_PORT: 5432
-      DEBUG: True
+x-shared-env: &shared_envs
+    DB_HOST: database
+    DB_USER: paas
+    DB_PASSWORD: paas
+    DB_PORT: 5432
+    DEBUG: "True"
+
+x-env-portal: &shared_env_portal
+  environment:
+    <<: *shared_envs
+    DB_NAME: portal
+    DB_ENGINE: django.db.backends.postgresql
+
+x-env-api: &shared_env_api
+  environment:
+    <<: *shared_envs
+    DB_NAME: api
 
 services:
   database:
     image: postgres:14.1
     environment:
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=admin
-      - POSTGRES_DB=paas
+      - POSTGRES_USER=paas
+      - POSTGRES_PASSWORD=paas
+      - POSTGRES_MULTIPLE_DATABASES=api,portal
     ports:
       - "5432:5432"
     volumes:
       - ${PWD}/volumes/postgres:/var/lib/postgresql/data
-    platform: linux/x86_64
+      - ${PWD}/docker/db-entrypoint:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d paas -h localhost"]
+      test: ["CMD-SHELL", "pg_isready -U paas -d api -h localhost"]
       interval: 3s
       timeout: 10s
       retries: 10
+
+  portal:
+    image: portal
+    <<: *shared_env_portal
+    volumes:
+      - ${PWD}/portal:/app
+    build:
+      context: ../portal
+      dockerfile: Dockerfile
+      args:
+        VERSION: 0.0.0-dev
+    ports:
+      - 80:80
+    command: python manage.py runserver --insecure 0.0.0.0:80
+    depends_on:
+      portal-migrate:
+        condition: service_completed_successfully
+
+  portal-migrate:
+    image: portal
+    <<: *shared_env_portal
+    volumes:
+      - ${PWD}/portal:/app
+    command: python manage.py migrate portal
+    depends_on:
+      database:
+        condition: service_healthy
+
+  portal-load_data:
+    image: portal
+    <<: *shared_env_portal
+    volumes:
+      - ${PWD}/portal:/app
+    command: python manage.py loaddata initial_data
+    depends_on:
+      portal-migrate:
+        condition: service_completed_successfully
 
   api:
     build:
       context: ../api
       dockerfile: Dockerfile
     image: api
-    <<: *shared_envs
+    <<: *shared_env_api
     volumes:
       - ${PWD}/api:/app
-    platform: linux/x86_64
     ports:
       - 8000:8000
+    depends_on:
+      api-migrate:
+        condition: service_completed_successfully
+
+  api-migrate:
+    image: api
+    <<: *shared_env_api
+    command: alembic upgrade head
+    volumes:
+      - ${PWD}/api:/app
     depends_on:
       database:
         condition: service_healthy
 
   api-test:
-    build:
-      context: ../api
-      dockerfile: Dockerfile
     image: api
     environment:
       - PYTHONPATH=./
       - ENV=test
-    platform: linux/x86_64
     command: pytest tests/
     volumes:
       - ${PWD}/api:/app
