@@ -17,6 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from portal.views import ApplicationsView, ApplicationDetailView, ApplicationNewlView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('applications/', ApplicationsView.as_view(), name='applications_index'),
+    path('applications/<uuid:uuid>/', ApplicationDetailView.as_view(), name='application_detail'),
+    path('applications/new/', ApplicationNewlView.as_view(), name='application_new'),
 ]

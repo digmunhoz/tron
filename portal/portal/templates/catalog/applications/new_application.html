@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-lg px-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="pills-tab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link active" id="web-application-tab" data-coreui-toggle="pill" data-coreui-target="#web-application" type="button" role="tab" aria-controls="web-application" aria-selected="true">
+                            <svg class="icon"><use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-applications"></use></svg> Web Applications
+                          </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link" id="worker-tab" data-coreui-toggle="pill" data-coreui-target="#worker" type="button" role="tab" aria-controls="worker" aria-selected="false" disabled><svg class="icon"><use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-briefcase"></use></svg> Worker</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link" id="cronjob-tab" data-coreui-toggle="pill" data-coreui-target="#cronjob" type="button" role="tab" aria-controls="cronjob" aria-selected="false" disabled><svg class="icon"><use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-av-timer"></use></svg> Cronjob</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button class="btn btn-primary" type="button">
+                            <svg class="icon me-2">
+                                <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-plus">
+                                </use>
+                            </svg>New
+                        </button>
+                    </div>
+                    <!-- /.row--><br>
+                    <div class="table-responsive">
+                        <div class="tab-content" id="pills-tabContent">
+                            <div class="tab-pane fade show active" id="web-application" role="tabpanel" aria-labelledby="web-application-tab" tabindex="0">
+                                <table class="table border mb-0 table-striped table-hover">
+                                    <thead class="fw-semibold text-nowrap">
+                                        <tr class="align-middle">
+                                            <th class="bg-body-secondary text-center">
+
+                                            </th>
+                                            <th class="bg-body-secondary">Name</th>
+                                            <th class="bg-body-secondary">Namespace</th>
+                                            <th class="bg-body-secondary">Visibility</th>
+                                            <!-- <th class="bg-body-secondary"></th> -->
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for application in web_applications %}
+                                        <tr class="align-middle">
+                                            <td class="text-center">
+                                                <div class="avatar avatar-md"><img class="avatar-img"
+                                                        src="{% static 'coreui/assets/img/aws_logo.png' %}"><span
+                                                        class="avatar-status bg-success"></span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="text-nowrap">{{ application.name }}</div>
+                                                <div class="small text-body-secondary text-nowrap">{{ application.uuid }}</div>
+                                            </td>
+                                            <td>
+                                                <div class="text-nowrap">{{ application.namespace.name }}</div>
+                                                <div class="small text-body-secondary text-nowrap">{{ application.namespace.uuid }}</div>
+                                            </td>
+                                            <td>
+                                                <div class="text-nowrap">{% if application.private %}Private{% else %}Public{%endif %}</div>
+                                                <div class="small text-body-secondary text-nowrap">{% if application.private%}Internal requests only{% else %}External and internal application{%endif %}</div>
+                                            </td>
+                                            <!-- <td>
+                                                <div class="dropdown dropup">
+                                                    <button class="btn btn-transparent p-0" type="button"
+                                                        data-coreui-toggle="dropdown" aria-haspopup="true"
+                                                        aria-expanded="false">
+                                                        <svg class="icon">
+                                                            <use
+                                                                xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-options">
+                                                            </use>
+                                                        </svg>
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-end">
+                                                        <a class="dropdown-item" href="#">Info</a>
+                                                        <a class="dropdown-item" href="#">Edit</a>
+                                                        <a class="dropdown-item text-danger" href="#">Delete</a>
+                                                    </div>
+                                                </div>
+                                            </td> -->
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="tab-pane fade" id="worker" role="tabpanel" aria-labelledby="worker-tab" tabindex="0">...</div>
+                            <div class="tab-pane fade" id="cronjob" role="tabpanel" aria-labelledby="cronjob-tab" tabindex="0">...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- /.col-->
+    </div>
+
+</div>
+{% endblock %}
