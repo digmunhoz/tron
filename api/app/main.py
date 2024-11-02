@@ -24,7 +24,7 @@ def include_all_routers(app: FastAPI):
             module = importlib.import_module(module_path)
 
             if hasattr(module, "router"):
-                app.include_router(module.router)
+                app.include_router(module.router, tags=[module_name])
 
 
 include_all_routers(app)
