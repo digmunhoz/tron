@@ -1,2 +1,2 @@
-from .dashboard import DashboardView
 from .applications import ApplicationsView, ApplicationDetailView, ApplicationNewlView
+from .home import HomeView

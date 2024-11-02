@@ -18,9 +18,11 @@ from django.contrib import admin
 from django.urls import path
 
 from portal.views import ApplicationsView, ApplicationDetailView, ApplicationNewlView
+from portal.views import HomeView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls),
+    path('', HomeView.as_view(), name='home'),
     path('applications/', ApplicationsView.as_view(), name='applications_index'),
     path('applications/<uuid:uuid>/', ApplicationDetailView.as_view(), name='application_detail'),
     path('applications/new/', ApplicationNewlView.as_view(), name='application_new'),
