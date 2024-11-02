@@ -13,7 +13,7 @@ import app.models.environment as EnvironmentModel
 import app.models.webapp_deploy as WebappDeployModel
 import app.models.cluster as ClusterModel
 import app.models.workload as WorkloadModel
-import app.models.instance as InstanceModel
+import app.models.webapp_instance as InstanceModel
 import app.schemas.webapp_deploy as WebappDeploySchema
 
 
@@ -142,8 +142,7 @@ class WebappDeployService:
                 db.refresh(db_webapp_deploy)
             except Exception as e:
                 db.rollback()
-                print(dir(e))
-                message = {"status": "error", "message": f"{e._message}"}
+                message = {"status": "error", "message": f"{e._sql_message}"}
                 raise HTTPException(status_code=400, detail=message)
 
         return db_webapp_deploy
@@ -176,6 +175,13 @@ class WebappDeployService:
         if db_webapp_deploy is None:
             raise HTTPException(status_code=404, detail="Webapp Deploy not found")
 
-        db.delete(db_webapp_deploy)
-        db.commit()
+        try:
+            db.delete(db_webapp_deploy)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            message = {"status": "error", "message": f"{e._sql_message}"}
+            print(dir(e))
+            raise HTTPException(status_code=400, detail=message)
+
         return {"detail": "Webapp Deploy deleted successfully"}

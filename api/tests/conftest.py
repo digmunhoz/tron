@@ -8,7 +8,7 @@ import app.models.namespace as NamespaceModel
 import app.models.webapp_deploy as WebappDeployModel
 import app.models.environment as EnvironmentModel
 import app.models.workload as WorkloadModel
-import app.models.instance as InstanceModel
+import app.models.webapp_instance as InstanceModel
 import app.models.cluster as ClusterModel
 
 @pytest.fixture()

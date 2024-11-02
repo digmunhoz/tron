@@ -7,7 +7,7 @@ from uuid import uuid4
 
 
 class Instance(Base):
-    __tablename__ = "instances"
+    __tablename__ = "webapp_instances"
 
     id = Column(Integer, primary_key=True, index=True)
     uuid = Column(UUID(as_uuid=True), default=uuid4, unique=True, nullable=False)

@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-import app.models.instance as InstanceModel
+import app.models.webapp_instance as InstanceModel
 import app.models.webapp_deploy as WebappDeployModel
 import app.models.cluster as ClusterModel
 import app.models.environment as EnvironmentModel
