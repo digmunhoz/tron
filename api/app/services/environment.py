@@ -28,7 +28,7 @@ class EnvironmentService:
 
         return EnvironmentSchema.EnvironmentWithClusters.model_validate(serialized_data)
 
-    def get_environments(db: Session, skip: int = 0, limit: int = 10):
+    def get_environments(db: Session, skip: int = 0, limit: int = 100):
         db_environments = db.query(EnvironmentModel.Environment).offset(skip).limit(limit).all()
 
         serialized_data = []

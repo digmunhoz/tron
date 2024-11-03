@@ -78,7 +78,7 @@ class WebappService:
         return WebappSchema.WebappCompletedResponse.model_validate(serialized_data)
 
     def get_webapps(
-        db: Session, skip: int = 0, limit: int = 10
+        db: Session, skip: int = 0, limit: int = 100
     ) -> WebappSchema.WebappReducedResponse:
         return db.query(WebappModel.Webapp).offset(skip).limit(limit).all()
 

@@ -27,7 +27,7 @@ def update_cluster(
 
 @router.get("/clusters/", response_model=list[schemas.ClusterResponseWithValidation])
 def list_clusters(
-    skip: int = 0, limit: int = 10, db: Session = Depends(database.get_db)
+    skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)
 ):
     return ClusterService.get_clusters(db, skip=skip, limit=limit)
 

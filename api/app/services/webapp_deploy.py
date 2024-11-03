@@ -162,7 +162,7 @@ class WebappDeployService:
         )
 
     def get_webapp_deploys(
-        db: Session, skip: int = 0, limit: int = 10
+        db: Session, skip: int = 0, limit: int = 100
     ) -> WebappDeploySchema.WebappDeployReducedResponse:
         return db.query(WebappDeployModel.WebappDeploy).offset(skip).limit(limit).all()
 

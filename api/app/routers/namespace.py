@@ -27,7 +27,7 @@ def update_namespace(
 
 
 @router.get("/namespaces/", response_model=list[schemas.Namespace])
-def list_namespaces(skip: int = 0, limit: int = 10, db: Session = Depends(database.get_db)):
+def list_namespaces(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
     return NamespaceService.get_namespaces(db, skip=skip, limit=limit)
 
 

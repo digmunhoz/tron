@@ -96,7 +96,7 @@ class ClusterService:
 
         return ClusterSchema.ClusterCompletedResponse.model_validate(serialized_data)
 
-    def get_clusters(db: Session, skip: int = 0, limit: int = 10):
+    def get_clusters(db: Session, skip: int = 0, limit: int = 100):
         clusters = db.query(ClusterModel.Cluster).offset(skip).limit(limit).all()
 
         serialized_data = []

@@ -22,7 +22,7 @@ class NamespaceService:
 
         return db_namespace
 
-    def get_namespaces(db: Session, skip: int = 0, limit: int = 10):
+    def get_namespaces(db: Session, skip: int = 0, limit: int = 100):
         return db.query(NamespaceModel.Namespace).offset(skip).limit(limit).all()
 
     def delete_namespace(db: Session, namespace_uuid: UUID):

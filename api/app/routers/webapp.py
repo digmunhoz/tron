@@ -32,7 +32,7 @@ def update_webapp(
 
 @router.get("/webapps/", response_model=list[WebappSchemas.WebappReducedResponse])
 def list_webapps(
-    skip: int = 0, limit: int = 10, db: Session = Depends(database.get_db)
+    skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)
 ):
     return WebappService.get_webapps(db, skip=skip, limit=limit)
 
@@ -77,7 +77,7 @@ def update_webapp_deploy(
     response_model=list[WebappDeploySchemas.WebappDeployReducedResponse],
 )
 def list_webapp_deploys(
-    skip: int = 0, limit: int = 10, db: Session = Depends(database.get_db)
+    skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)
 ):
     return WebappDeployService.get_webapp_deploys(db, skip=skip, limit=limit)
 
@@ -109,7 +109,7 @@ def create_instance(
 
 @router.get("/webapps/instances/", response_model=list[WebappInstanceSchemas.Instance])
 def list_instances(
-    skip: int = 0, limit: int = 10, db: Session = Depends(database.get_db)
+    skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)
 ):
     return InstanceService.get_instances(db, skip=skip, limit=limit)
 

@@ -27,7 +27,7 @@ def update_environment(
 
 
 @router.get("/environments/", response_model=list[schemas.EnvironmentWithClusters])
-def list_environments(skip: int = 0, limit: int = 10, db: Session = Depends(database.get_db)):
+def list_environments(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
     return EnvironmentService.get_environments(db, skip=skip, limit=limit)
 
 

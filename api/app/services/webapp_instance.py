@@ -30,7 +30,7 @@ class InstanceService:
 
         return InstanceSchema.Instance.model_validate(db_instance)
 
-    def get_instances(db: Session, skip: int = 0, limit: int = 10):
+    def get_instances(db: Session, skip: int = 0, limit: int = 100):
         db_instances = db.query(InstanceModel.Instance).offset(skip).limit(limit).all()
 
         return db_instances

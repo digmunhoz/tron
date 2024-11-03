@@ -25,14 +25,21 @@ class WorkloadService:
             name=workload.name,
         )
         db.add(new_workload)
-        db.commit()
-        db.refresh(new_workload)
+
+        try:
+            db.commit()
+            db.refresh(new_workload)
+        except Exception as e:
+            db.rollback()
+            message = {"status": "error", "message": f"{e}"}
+            raise HTTPException(status_code=400, detail=message)
+
         return new_workload
 
     def get_workload(db: Session, workload_uuid: int):
         return db.query(WorkloadModel.Workload).filter(WorkloadModel.Workload.id == workload_uuid).first()
 
-    def get_workloads(db: Session, skip: int = 0, limit: int = 10):
+    def get_workloads(db: Session, skip: int = 0, limit: int = 100):
         return db.query(WorkloadModel.Workload).offset(skip).limit(limit).all()
 
     def delete_workload(db: Session, workload_uuid: UUID):
