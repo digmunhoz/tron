@@ -52,7 +52,12 @@
     <link href="{% static 'coreui/css/examples.css' %}" rel="stylesheet">
     <script src="{% static 'coreui/js/config.js' %}"></script>
     <script src="{% static 'coreui/js/color-modes.js' %}"></script>
+    <script src="{% static 'custom/js/jquery-3.7.1.min.js' %}" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="{% static 'custom/js/dataTables.min.js' %}"></script>
+    <script src="{% static 'custom/js/dataTables.bootstrap5.min.js' %}"></script>
     <link href="{% static 'coreui/vendors/@coreui/chartjs/css/coreui-chartjs.css' %}" rel="stylesheet">
+    <link href="{% static 'custom/css/dataTables.bootstrap5.min.css' %}"  rel="stylesheet">
+
 </head>
 
 
@@ -84,28 +89,11 @@
             <svg class="nav-icon">
                 <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/brand.svg' %}#cib-kubernetes"></use>
               </svg> Clusters</a></li>
-        <li class="nav-item"><a class="nav-link" href="#">
-            <svg class="nav-icon">
-                <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-apps-settings"></use>
-              </svg> Environments</a></li>
-        <li class="nav-item"><a class="nav-link" href="#">
-            <svg class="nav-icon">
-                <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-chart"></use>
-              </svg> Workloads</a></li>
-        <li class="nav-group"><a class="nav-link nav-group-toggle" href="#">
-            <svg class="nav-icon">
-              <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-notes"></use>
-            </svg> Forms</a>
-          <ul class="nav-group-items compact">
-            <li class="nav-item"><a class="nav-link" href="forms/form-control.html"><span class="nav-icon"><span class="nav-icon-bullet"></span></span> Form Control</a></li>
-            <li class="nav-item"><a class="nav-link" href="forms/select.html"><span class="nav-icon"><span class="nav-icon-bullet"></span></span> Select</a></li>
-            <li class="nav-item"><a class="nav-link" href="forms/checks-radios.html"><span class="nav-icon"><span class="nav-icon-bullet"></span></span> Checks and radios</a></li>
-            <li class="nav-item"><a class="nav-link" href="forms/range.html"><span class="nav-icon"><span class="nav-icon-bullet"></span></span> Range</a></li>
-            <li class="nav-item"><a class="nav-link" href="forms/input-group.html"><span class="nav-icon"><span class="nav-icon-bullet"></span></span> Input group</a></li>
-            <li class="nav-item"><a class="nav-link" href="forms/floating-labels.html"><span class="nav-icon"><span class="nav-icon-bullet"></span></span> Floating labels</a></li>
-            <li class="nav-item"><a class="nav-link" href="forms/layout.html"><span class="nav-icon"><span class="nav-icon-bullet"></span></span> Layout</a></li>
-            <li class="nav-item"><a class="nav-link" href="forms/validation.html"><span class="nav-icon"><span class="nav-icon-bullet"></span></span> Validation</a></li>
-          </ul>
+        <li class="nav-item">
+          <a class="nav-link {% if '/settings' in request.path %}active{% endif %}" href="/settings">
+          <svg class="nav-icon">
+              <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-settings"></use>
+          </svg> Settings</a>
         </li>
       </ul>
       <div class="sidebar-footer border-top d-none d-md-flex">
@@ -243,8 +231,6 @@
     <script src="{% static 'coreui/vendors/@coreui/chartjs/js/coreui-chartjs.js' %}"></script>
     <script src="{% static 'coreui/vendors/@coreui/utils/js/index.js' %}"></script>
     <script src="{% static 'coreui/js/main.js' %}"></script>
-    <script>
-    </script>
 
   </body>
 

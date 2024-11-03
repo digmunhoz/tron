@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-lg px-12">
+    <div class="row">
+        <div class="tab-content rounded-bottom">
+            <div class="tab-pane p-3 active preview" role="tabpanel" id="preview-1011">
+              <div class="row">
+                <div class="col-4">
+                    <div class="list-group" id="list-tab" role="tablist">
+                        <a class="list-group-item list-group-item-action active" id="list-home-list" data-coreui-toggle="tab" href="#list-namespaces" role="tab" aria-controls="list-home" aria-selected="true">Namespaces</a>
+                        <a class="list-group-item list-group-item-action" id="list-workloads-list" data-coreui-toggle="tab" href="#list-workloads" role="tab" aria-controls="list-workloads" aria-selected="false" tabindex="-1">Workloads</a>
+                        <a class="list-group-item list-group-item-action" id="list-environments-list" data-coreui-toggle="tab" href="#list-environments" role="tab" aria-controls="list-environments" aria-selected="false" tabindex="-1">Environments</a>
+                    </div>
+                </div>
+                <div class="col-8">
+                  <div class="tab-content" id="nav-tabContent">
+                    <div class="tab-pane fade active show" id="list-namespaces" role="tabpanel" aria-labelledby="list-home-list">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <strong>Namespaces</strong>
+                            </div>
+                            <div class="card-body">
+                                <table class="table border mb-0 table-striped table-hover" name="namespaceTable" id="namespaceTable">
+                                    <thead class="fw-semibold text-nowrap">
+                                        <tr class="align-middle">
+                                            <th class="bg-body-secondary" style="width: 95%;">Name</th>
+                                            <th class="bg-body-secondary"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for namespace in namespaces %}
+                                        <tr class="align-middle">
+                                            <td>
+                                                <div class="text-nowrap">{{ namespace.name }}</div>
+                                                <div class="small text-body-secondary text-nowrap">{{ namespace.uuid }}</div>
+                                            </td>
+                                            <td>
+                                                <div class="dropdown dropup">
+                                                    <button class="btn btn-transparent p-0" type="button"
+                                                        data-coreui-toggle="dropdown" aria-haspopup="true"
+                                                        aria-expanded="false">
+                                                        <svg class="icon">
+                                                            <use
+                                                                xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-options">
+                                                            </use>
+                                                        </svg>
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-end">
+                                                        <a class="dropdown-item" href="#">Edit</a>
+                                                        <a class="dropdown-item text-danger" href="#">Delete</a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="list-workloads" role="tabpanel" aria-labelledby="list-workloads-list">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <strong>Workloads</strong>
+                            </div>
+                            <div class="card-body">
+                                <table class="table border mb-0 table-striped table-hover"  name="workloadTable" id="workloadTable">
+                                    <thead class="fw-semibold text-nowrap">
+                                        <tr class="align-middle">
+                                            <th class="bg-body-secondary" style="width: 95%;">Name</th>
+                                            <th class="bg-body-secondary"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for workload in workloads %}
+                                        <tr class="align-middle">
+                                            <td>
+                                                <div class="text-nowrap">{{ workload.name }}</div>
+                                                <div class="small text-body-secondary text-nowrap">{{ workload.uuid }}</div>
+                                            </td>
+                                            <td>
+                                                <div class="dropdown dropup">
+                                                    <button class="btn btn-transparent p-0" type="button"
+                                                        data-coreui-toggle="dropdown" aria-haspopup="true"
+                                                        aria-expanded="false">
+                                                        <svg class="icon">
+                                                            <use
+                                                                xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-options">
+                                                            </use>
+                                                        </svg>
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-end">
+                                                        <a class="dropdown-item" href="#">Edit</a>
+                                                        <a class="dropdown-item text-danger" href="#">Delete</a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="list-environments" role="tabpanel" aria-labelledby="list-environments-list">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <strong>Environments</strong>
+                            </div>
+                            <div class="card-body">
+                                <table class="table border mb-0 table-striped table-hover" name="environmentTable" id="environmentTable">
+                                    <thead class="fw-semibold text-nowrap">
+                                        <tr class="align-middle">
+                                            <th class="bg-body-secondary" style="width: 95%;">Name</th>
+                                            <th class="bg-body-secondary"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for environment in environments %}
+                                        <tr class="align-middle">
+                                            <td>
+                                                <div class="text-nowrap">{{ environment.name }}</div>
+                                                <div class="small text-body-secondary text-nowrap">{{ environment.uuid }}</div>
+                                            </td>
+                                            <td>
+                                                <div class="dropdown dropup">
+                                                    <button class="btn btn-transparent p-0" type="button"
+                                                        data-coreui-toggle="dropdown" aria-haspopup="true"
+                                                        aria-expanded="false">
+                                                        <svg class="icon">
+                                                            <use
+                                                                xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-options">
+                                                            </use>
+                                                        </svg>
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-end">
+                                                        <a class="dropdown-item" href="#">Edit</a>
+                                                        <a class="dropdown-item text-danger" href="#">Delete</a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+    </div>
+
+<script>
+    new DataTable('#namespaceTable', {
+        responsive: true,
+        searching: true,
+        ordering: false,
+        pageLength: 5,
+        lengthChange: false
+    });
+    new DataTable('#environmentTable', {
+        responsive: true,
+        searching: true,
+        ordering: false,
+        pageLength: 5,
+        lengthChange: false
+    });
+    new DataTable('#workloadTable', {
+        responsive: true,
+        searching: true,
+        ordering: false,
+        pageLength: 5,
+        lengthChange: false
+    });
+</script>
+
+</div>
+{% endblock %}

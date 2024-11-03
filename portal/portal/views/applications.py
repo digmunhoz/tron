@@ -1,5 +1,6 @@
 from django.views import View
 from django.shortcuts import render, redirect
+from django.http import HttpResponseBadRequest
 
 from portal.clients.tron_api import TronAPIClient
 
@@ -46,9 +47,35 @@ class ApplicationNewlView(View):
     template_name = "catalog/applications/new_application.html"
 
     def get(self, request):
+        namespaces = tron_api.list_namespaces()
 
-        context = {
-
-        }
+        context = {"namespaces": namespaces}
 
         return render(request, self.template_name, context)
+
+    def post(self, request):
+        application_name = request.POST.get("application_name")
+        application_type = request.POST.get("application_type")
+        application_namespace_uuid = request.POST.get("application_namespace")
+        application_visibility = request.POST.get("application_visibility")
+
+        if not all(
+            [
+                application_name,
+                application_type,
+                application_namespace_uuid,
+                application_visibility,
+            ]
+        ):
+            return HttpResponseBadRequest("All fields are requireds")
+
+        application_data = {
+            "name": application_name,
+            "private": False if application_visibility == "public" else True,
+            "namespace_uuid": application_namespace_uuid,
+        }
+
+        if application_type == "webapp":
+            tron_api.create_webapp(application_data)
+
+        return redirect("applications_index")

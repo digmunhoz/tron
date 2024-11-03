@@ -39,3 +39,9 @@ class TronAPIClient:
 
     def get_webapp(self, uuid):
         return self._get(f"/webapps/{uuid}")
+
+    def create_webapp(self, data):
+        return self._post(f"/webapps/", data=data)
+
+    def create_webapp_deploy(self, data):
+        return self._post(f"/webapps/deploys/", data=data)
