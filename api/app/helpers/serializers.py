@@ -16,4 +16,6 @@ def serialize_webapp_deploy(webapp_deploy):
         "custom_metrics": webapp_deploy.custom_metrics,
         "healthcheck": webapp_deploy.healthcheck,
         "endpoints": webapp_deploy.endpoints,
+        "cpu": webapp_deploy.cpu,
+        "memory": webapp_deploy.memory
     }

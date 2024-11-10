@@ -1,4 +1,4 @@
-from pydantic import BaseModel, conint, ConfigDict
+from pydantic import BaseModel, conint, ConfigDict, condecimal
 from enum import Enum
 from typing import List
 from uuid import UUID
@@ -76,6 +76,8 @@ class WebappDeployCreate(WebappDeploy):
     cpu_scaling_threshold: conint(ge=0, le=100) = 80
     memory_scaling_threshold: conint(ge=0, le=100) = 80
     healthcheck: WebappDeployHealthcheck
+    cpu: condecimal(max_digits=3, decimal_places=2)
+    memory: int
 
 
 class WebappDeployUpdate(WebappDeploy):
@@ -89,6 +91,8 @@ class WebappDeployUpdate(WebappDeploy):
     cpu_scaling_threshold: conint(ge=0, le=100) = 80
     memory_scaling_threshold: conint(ge=0, le=100) = 80
     healthcheck: WebappDeployHealthcheck
+    cpu: condecimal(max_digits=3, decimal_places=2)
+    memory: int
 
 
 class WebappDeployCompletedResponse(WebappDeploy):
@@ -104,6 +108,8 @@ class WebappDeployCompletedResponse(WebappDeploy):
     cpu_scaling_threshold: conint(ge=0, le=100) = 80
     memory_scaling_threshold: conint(ge=0, le=100) = 80
     healthcheck: WebappDeployHealthcheck
+    cpu: condecimal(max_digits=3, decimal_places=2)
+    memory: int
 
     model_config = ConfigDict(
         from_attributes=True,

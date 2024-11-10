@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, Enum, UniqueConstraint, JSON, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, NUMERIC, Boolean, Enum, UniqueConstraint, JSON, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -40,6 +40,9 @@ class WebappDeploy(Base):
     envs = Column(JSON, nullable=True)
     secrets = Column(JSON, nullable=True)
     healthcheck = Column(JSON, nullable=False)
+
+    cpu = Column(NUMERIC(precision=3, scale=2), default=0.25)
+    memory = Column(Integer, default=512)
 
     instances = relationship("Instance", back_populates="webapp_deploy")
 

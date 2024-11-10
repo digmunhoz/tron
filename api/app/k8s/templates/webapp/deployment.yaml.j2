@@ -70,10 +70,15 @@ spec:
           successThreshold: 1
           timeoutSeconds: {{ healthcheck.timeout | int }}
         readinessProbe:
+          {% if healthcheck.protocol == "http" -%}
           httpGet:
-            path: /healthcheck
-            port: 80
+            path: {{ healthcheck.path }}
+            port: {{ healthcheck.port | int }}
             scheme: HTTP
+          {% elif healthcheck.protocol == "tcp" -%}
+          tcpSocket:
+            port: {{ healthcheck.port | int }}
+          {% endif %}
           failureThreshold: {{ healthcheck.failure_threshold | int }}
           initialDelaySeconds: {{ healthcheck.initial_interval | int }}
           periodSeconds: {{ healthcheck.interval | int }}
@@ -81,11 +86,11 @@ spec:
           timeoutSeconds: {{ healthcheck.timeout | int }}
         resources:
           requests:
-            cpu: "250m"
-            memory: "512Mi"
+            cpu: {{ cpu }}
+            memory: {{ memory }}Mi
           limits:
-            cpu: "250m"
-            memory: "512Mi"
+            cpu: {{ cpu }}
+            memory: {{ memory }}Mi
       dnsConfig:
         options:
         - name: ndots

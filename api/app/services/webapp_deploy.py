@@ -57,6 +57,8 @@ class WebappDeployService:
                 webapp_deploy.memory_scaling_threshold
             )
             db_webapp_deploy.healthcheck = webapp_deploy.healthcheck.model_dump()
+            db_webapp_deploy.cpu = webapp_deploy.cpu
+            db_webapp_deploy.memory = webapp_deploy.memory
 
             instances = (
                 db.query(InstanceModel.Instance)
@@ -134,6 +136,8 @@ class WebappDeployService:
                 cpu_scaling_threshold=webapp_deploy.cpu_scaling_threshold,
                 memory_scaling_threshold=webapp_deploy.memory_scaling_threshold,
                 healthcheck=webapp_deploy.healthcheck.model_dump(),
+                cpu=webapp_deploy.cpu,
+                memory=webapp_deploy.memory
             )
             db.add(db_webapp_deploy)
 
