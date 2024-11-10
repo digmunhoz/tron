@@ -21,6 +21,7 @@ class Environment(EnvironmentBase):
 class EnvironmentWithClusters(Environment):
     name: str
     clusters: list
+    settings: list
 
     model_config = ConfigDict(
         from_attributes=True,

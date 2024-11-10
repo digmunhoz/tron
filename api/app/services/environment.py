@@ -24,6 +24,7 @@ class EnvironmentService:
             "uuid": db_environment.uuid,
             "name": db_environment.name,
             "clusters": [cluster.name for cluster in db_environment.clusters],
+            "settings": [{"key": settings.key, "value": settings.value, "description": settings.description} for settings in db_environment.settings]
         }
 
         return EnvironmentSchema.EnvironmentWithClusters.model_validate(serialized_data)
@@ -38,6 +39,7 @@ class EnvironmentService:
                 "uuid": environment.uuid,
                 "name": environment.name,
                 "clusters": [cluster.name for cluster in environment.clusters],
+                "settings": [{"key": settings.key, "value": settings.value, "description": settings.description} for settings in environment.settings]
             }
 
             environment_response = EnvironmentSchema.EnvironmentWithClusters.model_validate(environment_data)

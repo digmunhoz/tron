@@ -26,6 +26,8 @@ spec:
         prometheus.io/port: "{{ custom_metrics.port | string }}"
         prometheus.io/scrape: "{{ custom_metrics.enabled | string | lower }}"
         prometheus.io/path: "{{ custom_metrics.path | string }}"
+        sidecar.opentelemetry.io/inject: "true"
+        instrumentation.opentelemetry.io/inject-java: "true"
       labels:
         app: {{ webapp_uuid }}
         environment: "{{ environment }}"

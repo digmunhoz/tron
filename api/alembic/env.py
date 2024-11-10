@@ -13,6 +13,7 @@ import app.models.cluster
 import app.models.webapp_deploy
 import app.models.environment
 import app.models.webapp_instance
+import app.models.settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

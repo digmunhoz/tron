@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 33c512f59334
+Revision ID: c1ddcf4e534f
 Revises: 
-Create Date: 2024-11-02 12:34:34.984324
+Create Date: 2024-11-10 21:38:06.072329
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '33c512f59334'
+revision: str = 'c1ddcf4e534f'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -70,6 +70,18 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_clusters_id'), 'clusters', ['id'], unique=False)
     op.create_index(op.f('ix_clusters_name'), 'clusters', ['name'], unique=True)
+    op.create_table('settings',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('uuid', sa.UUID(), nullable=False),
+    sa.Column('key', sa.String(), nullable=False),
+    sa.Column('value', sa.JSON(), nullable=False),
+    sa.Column('description', sa.String(), nullable=True),
+    sa.Column('environment_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['environment_id'], ['environments.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('key', 'environment_id', name='uq_key_environment'),
+    sa.UniqueConstraint('uuid')
+    )
     op.create_table('webapps',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('uuid', sa.UUID(), nullable=False),
@@ -100,6 +112,8 @@ def upgrade() -> None:
     sa.Column('envs', sa.JSON(), nullable=True),
     sa.Column('secrets', sa.JSON(), nullable=True),
     sa.Column('healthcheck', sa.JSON(), nullable=False),
+    sa.Column('cpu', sa.NUMERIC(precision=3, scale=2), nullable=True),
+    sa.Column('memory', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['environment_id'], ['environments.id'], ),
@@ -136,6 +150,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_webapps_name'), table_name='webapps')
     op.drop_index(op.f('ix_webapps_id'), table_name='webapps')
     op.drop_table('webapps')
+    op.drop_table('settings')
     op.drop_index(op.f('ix_clusters_name'), table_name='clusters')
     op.drop_index(op.f('ix_clusters_id'), table_name='clusters')
     op.drop_table('clusters')
