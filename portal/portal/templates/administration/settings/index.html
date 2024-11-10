@@ -157,16 +157,23 @@
                                             name="environmentTable" id="environmentTable">
                                             <thead class="fw-semibold text-nowrap">
                                                 <tr class="align-middle">
-                                                    <th class="bg-body-secondary" style="width: 95%;">Name</th>
-                                                    <th class="bg-body-secondary"></th>
+                                                    <th class="bg-body-secondary text-start" style="width: 45%;">Name</th>
+                                                    <th class="bg-body-secondary text-start" style="width: 45%;">Settings</th>
+                                                    <th class="bg-body-secondary" style="width: 5%;"></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {% for environment in environments %}
                                                 <tr class="align-middle">
-                                                    <td>
+                                                    <td class="text-start">
                                                         <div class="text-nowrap">{{ environment.name }}</div>
                                                         <div class="small text-body-secondary text-nowrap">{{ environment.uuid }}</div>
+                                                    </td>
+                                                    <td class="text-start">
+                                                        <div class="text-nowrap">
+                                                            <div class="small text-body-secondary">This environment has</div>
+                                                            <div class="fw-semibold text-nowrap">{{ environment.settings | length }} configs defined</div>
+                                                        </div>
                                                     </td>
                                                     <td>
                                                         <div class="dropdown dropup">
