@@ -38,6 +38,8 @@ def test_instance_management():
                 "dest_port": 80,
             }
         ],
+        "cpu": 0.25,
+        "memory": 128
     }
 
     kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(

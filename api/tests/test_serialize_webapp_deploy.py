@@ -22,6 +22,8 @@ def test_serialize_webapp_deploy():
     mock_webapp_deploy.custom_metrics = {"enabled": False, "path": "/metrics", "port": 8080}
     mock_webapp_deploy.healthcheck = {"path": "/healthcheck","protocol": "http","port": 80,"timeout": 5,"interval": 31,"initial_interval": 30,"failure_threshold": 2}
     mock_webapp_deploy.endpoints = [{"source_protocol": "http","source_port": 80,"dest_protocol": "http","dest_port": 80}]
+    mock_webapp_deploy.cpu = "0.25"
+    mock_webapp_deploy.memory = 128
 
     result = serialize_webapp_deploy(mock_webapp_deploy)
 
@@ -41,6 +43,8 @@ def test_serialize_webapp_deploy():
         "custom_metrics": {"enabled": False, "path": "/metrics", "port": 8080},
         "healthcheck": {"path": "/healthcheck","protocol": "http","port": 80,"timeout": 5,"interval": 31,"initial_interval": 30,"failure_threshold": 2},
         "endpoints": [{"source_protocol": "http","source_port": 80,"dest_protocol": "http","dest_port": 80}],
+        "cpu": "0.25",
+        "memory": 128
     }
 
     assert result == expected_result
