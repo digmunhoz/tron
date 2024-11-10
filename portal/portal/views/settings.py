@@ -27,3 +27,14 @@ class SettingsView(View):
         }
 
         return render(request, self.template_name, context)
+
+
+    def post(self, request):
+        action = request.POST.get("action")
+        namespace_uuid = request.POST.get("namespace_uuid")
+
+        if action == "delete_namespace":
+            tron_api.delete_namespace(namespace_uuid)
+
+
+        return redirect("settings_index")

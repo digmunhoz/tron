@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-<div class="container-lg px-12">
+<div class="container-lg px-4">
     <div class="row g-4 mb-4">
         <div class="col-12 col-sm-6 col-xl-4 col-xxl-3">
             <div class="card">
@@ -132,7 +132,7 @@
                     <div class="table-responsive">
                         <div class="tab-content" id="pills-tabContent">
                             <div class="tab-pane fade show active" id="web-application" role="tabpanel" aria-labelledby="web-application-tab" tabindex="0">
-                                <table class="table border mb-0 table-striped table-hover">
+                                <table class="table border mb-0 table-striped table-hover" id="webApplicationTable" name="webApplicationTable">
                                     <thead class="fw-semibold text-nowrap">
                                         <tr class="align-middle">
                                             <th class="bg-body-secondary text-center">
@@ -197,6 +197,16 @@
         </div>
         <!-- /.col-->
     </div>
+
+    <script>
+        new DataTable('#webApplicationTable', {
+            responsive: true,
+            searching: true,
+            ordering: false,
+            pageLength: 5,
+            lengthChange: false
+        });
+    </script>
 
 </div>
 {% endblock %}
