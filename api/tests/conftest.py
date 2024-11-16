@@ -10,6 +10,7 @@ import app.models.environment as EnvironmentModel
 import app.models.workload as WorkloadModel
 import app.models.webapp_instance as InstanceModel
 import app.models.cluster as ClusterModel
+import app.models.settings as SettingsrModel
 
 @pytest.fixture()
 def mock_db():
