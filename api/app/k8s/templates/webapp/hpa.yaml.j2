@@ -1,13 +1,13 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: "{{ webapp_uuid }}"
-  namespace: "{{ namespace_uuid }}"
+  name: "{{ application_settings.webapp_uuid }}"
+  namespace: "{{ application_settings.namespace_uuid }}"
   labels:
-    app: "{{ webapp_uuid }}"
-    environment: "{{ environment }}"
-    alias: "{{ webapp_name }}"
-    namespace: "{{ namespace_name }}"
+    app: "{{ application_settings.webapp_uuid }}"
+    environment: "{{ application_settings.environment }}"
+    alias: "{{ application_settings.webapp_name }}"
+    namespace: "{{ application_settings.namespace_name }}"
     tier: "tier-3"
     type: "web"
 spec:
@@ -17,16 +17,16 @@ spec:
   - resource:
       name: memory
       target:
-        averageUtilization: {{ memory_scaling_threshold }}
+        averageUtilization: {{ application_settings.memory_scaling_threshold }}
         type: Utilization
     type: Resource
   - resource:
       name: cpu
       target:
-        averageUtilization: {{ cpu_scaling_threshold }}
+        averageUtilization: {{ application_settings.cpu_scaling_threshold }}
         type: Utilization
     type: Resource
   scaleTargetRef:
     apiVersion: apps/v1beta1
     kind: Deployment
-    name: "{{ webapp_uuid }}"
+    name: "{{ application_settings.webapp_uuid }}"

@@ -33,15 +33,20 @@ class WebappService:
             )
             db_webapp.private = webapp.private
         else:
+
+            namespace = (
+                db.query(NamespaceModel.Namespace)
+                .filter(NamespaceModel.Namespace.uuid == webapp.namespace_uuid)
+                .first()
+            )
+
+            if namespace is None:
+                raise HTTPException(status_code=404, detail="Namespace not found")
+
             db_webapp = WebappModel.Webapp(
                 uuid=uuid4(),
                 name=webapp.name,
-                namespace_id=(
-                    db.query(NamespaceModel.Namespace)
-                    .filter(NamespaceModel.Namespace.uuid == webapp.namespace_uuid)
-                    .first()
-                    .id
-                ),
+                namespace_id=namespace.id,
                 private=webapp.private,
             )
             db.add(db_webapp)

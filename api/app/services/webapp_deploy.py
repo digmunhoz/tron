@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from uuid import uuid4
 from uuid import UUID
 from app.k8s.client import K8sClient
-from app.helpers.serializers import serialize_webapp_deploy
+from app.helpers.serializers import serialize_webapp_deploy, serialize_settings
 from app.services.kubernetes.webapp_instance_manager import (
     KubernetesWebAppInstanceManager,
 )
@@ -11,6 +11,7 @@ from app.services.kubernetes.webapp_instance_manager import (
 import app.models.webapp as WebappModel
 import app.models.environment as EnvironmentModel
 import app.models.webapp_deploy as WebappDeployModel
+import app.models.settings as SettingsModel
 import app.models.cluster as ClusterModel
 import app.models.workload as WorkloadModel
 import app.models.webapp_instance as InstanceModel
@@ -39,6 +40,12 @@ class WebappDeployService:
                 db.query(WorkloadModel.Workload)
                 .filter(WorkloadModel.Workload.uuid == webapp_deploy.workload_uuid)
                 .first()
+            )
+
+            settings = (
+                db.query(SettingsModel.Settings)
+                .filter(SettingsModel.Settings.environment_id == db_webapp_deploy.environment_id)
+                .all()
             )
 
             db_webapp_deploy.workload_id = workload.id
@@ -76,11 +83,12 @@ class WebappDeployService:
                     )
 
                     webapp_deploy_serialized = serialize_webapp_deploy(db_webapp_deploy)
+                    settings_serialized = serialize_settings(settings)
 
                     k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
                     kubernetes_payload = (
                         KubernetesWebAppInstanceManager.instance_management(
-                            webapp_deploy_serialized
+                            webapp_deploy_serialized, settings_serialized
                         )
                     )
                     k8s_client.apply_or_delete_yaml_to_k8s(
@@ -137,7 +145,7 @@ class WebappDeployService:
                 memory_scaling_threshold=webapp_deploy.memory_scaling_threshold,
                 healthcheck=webapp_deploy.healthcheck.model_dump(),
                 cpu=webapp_deploy.cpu,
-                memory=webapp_deploy.memory
+                memory=webapp_deploy.memory,
             )
             db.add(db_webapp_deploy)
 

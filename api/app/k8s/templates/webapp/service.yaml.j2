@@ -1,25 +1,25 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: "svc-{{ webapp_uuid }}"
-  namespace: "{{ namespace_uuid }}"
+  name: "svc-{{ application_settings.webapp_uuid }}"
+  namespace: "{{ application_settings.namespace_uuid }}"
   labels:
-    app: "{{ webapp_uuid }}"
-    environment: "{{ environment }}"
-    alias: "{{ webapp_name }}"
-    namespace: "{{ namespace_name }}"
+    app: "{{ application_settings.webapp_uuid }}"
+    environment: "{{ application_settings.environment }}"
+    alias: "{{ application_settings.webapp_name }}"
+    namespace: "{{ application_settings.namespace_name }}"
     tier: "tier-3"
     type: "web"
 spec:
   ports:
-    {% for endpoint in endpoints -%}
+    {% for endpoint in application_settings.endpoints -%}
     - name: port-{{endpoint.source_port}}
       port: {{endpoint.source_port}}
       protocol: TCP
       targetPort: {{endpoint.dest_port}}
     {% endfor %}
   selector:
-    app: "{{ webapp_uuid }}"
+    app: "{{ application_settings.webapp_uuid }}"
   sessionAffinity: None
   type:
       ClusterIP

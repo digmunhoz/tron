@@ -19,3 +19,14 @@ def serialize_webapp_deploy(webapp_deploy):
         "cpu": webapp_deploy.cpu,
         "memory": webapp_deploy.memory
     }
+
+def serialize_settings(settings):
+
+    serialized_settings = {}
+
+    for item in settings:
+        serialized_settings.update({
+            item.key: item.value
+        })
+
+    return serialized_settings
