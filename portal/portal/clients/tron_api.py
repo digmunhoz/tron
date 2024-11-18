@@ -1,3 +1,4 @@
+import json
 import requests
 from .exceptions import APIError
 
@@ -22,6 +23,17 @@ class TronAPIClient:
         except requests.RequestException as e:
             raise APIError(f"Error posting data: {str(e)}")
 
+    def _put(self, endpoint, data):
+        try:
+            headers = {
+                'content-type': 'application/json',
+            }
+            response = requests.put(f"{self.base_url}{endpoint}", json=data, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            raise APIError(f"Error posting data: {str(e)}")
+
     def list_workloads(self):
         return self._get("/workloads/")
 
@@ -39,6 +51,12 @@ class TronAPIClient:
 
     def get_webapp(self, uuid):
         return self._get(f"/webapps/{uuid}")
+
+    def get_webapp_deploy(self, uuid):
+        return self._get(f"/webapps/deploys/{uuid}")
+
+    def put_webapp_deploy(self, uuid, data):
+        return self._put(f"/webapps/deploys/{uuid}", data=data)
 
     def create_webapp(self, data):
         return self._post(f"/webapps/", data=data)

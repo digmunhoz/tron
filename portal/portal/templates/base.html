@@ -1,240 +1,204 @@
 {% load static %}
-{% load breadcrumbs %}
-<!DOCTYPE html><!--
-    * CoreUI - Free Bootstrap Admin Template
-    * @version v5.1.1
-    * @link https://coreui.io/product/free-bootstrap-admin-template/
-    * Copyright (c) 2024 creativeLabs Łukasz Holeczek
-    * Licensed under MIT (https://github.com/coreui/coreui-free-bootstrap-admin-template/blob/main/LICENSE)
-    -->
+<!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="stylesheet" href="{% static 'coreui/css/style.css' %}">
-    <title>Portal Tron</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AdminLTE 3 | Dashboard</title>
+
+  <!-- Google Font: Source Sans Pro -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/fontawesome-free/css/all.min.css' %}">
+  <!-- Ionicons -->
+  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <!-- Tempusdominus Bootstrap 4 -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css' %}">
+  <!-- iCheck -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/icheck-bootstrap/icheck-bootstrap.min.css' %}">
+  <!-- JQVMap -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/jqvmap/jqvmap.min.css' %}">
+  <!-- Theme style -->
+  <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}">
+  <!-- overlayScrollbars -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/overlayScrollbars/css/OverlayScrollbars.min.css' %}">
+  <!-- Daterange picker -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/daterangepicker/daterangepicker.css' %}">
+  <!-- summernote -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/summernote/summernote-bs4.min.css' %}">
+  <!-- Custom -->
+  <script src="{% static 'custom/js/jquery-3.7.1.min.js' %}" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="{% static 'custom/js/dataTables.min.js' %}"></script>
+  <script src="{% static 'custom/js/dataTables.bootstrap5.min.js' %}"></script>
+  <link href="{% static 'custom/css/dataTables.bootstrap5.min.css' %}"  rel="stylesheet">
 </head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
 
-<head>
-    <base href="./">
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <meta name="description" content="CoreUI - Open Source Bootstrap Admin Template">
-    <meta name="author" content="Łukasz Holeczek">
-    <meta name="keyword" content="Bootstrap,Admin,Template,Open,Source,jQuery,CSS,HTML,RWD,Dashboard">
-    <title>Tron</title>
-    <link rel="apple-touch-icon" sizes="57x57" href="{% static 'coreui/assets/favicon/apple-icon-57x57.png' %}">
-    <link rel="apple-touch-icon" sizes="60x60" href="{% static 'coreui/assets/favicon/apple-icon-60x60.png' %}">
-    <link rel="apple-touch-icon" sizes="72x72" href="{% static 'coreui/assets/favicon/apple-icon-72x72.png' %}">
-    <link rel="apple-touch-icon" sizes="76x76" href="{% static 'coreui/assets/favicon/apple-icon-76x76.png' %}">
-    <link rel="apple-touch-icon" sizes="114x114" href="{% static 'coreui/assets/favicon/apple-icon-114x114.png' %}">
-    <link rel="apple-touch-icon" sizes="120x120" href="{% static 'coreui/assets/favicon/apple-icon-120x120.png' %}">
-    <link rel="apple-touch-icon" sizes="144x144" href="{% static 'coreui/assets/favicon/apple-icon-144x144.png' %}">
-    <link rel="apple-touch-icon" sizes="152x152" href="{% static 'coreui/assets/favicon/apple-icon-152x152.png' %}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'coreui/assets/favicon/apple-icon-180x180.png' %}">
-    <link rel="icon" type="image/png" sizes="192x192"
-        href="{% static 'coreui/assets/favicon/android-icon-192x192.png' %}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'coreui/assets/favicon/favicon-32x32.png' %}">
-    <link rel="icon" type="image/png" sizes="96x96" href="{% static 'coreui/assets/favicon/favicon-96x96.png' %}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'coreui/assets/favicon/favicon-16x16.png' %}">
-    <link rel="manifest" href="{% static 'coreui/assets/favicon/manifest.json' %}">
-    <meta name="msapplication-TileColor" content="#ffffff">
-    <meta name="msapplication-TileImage" content="{% static 'coreui/assets/favicon/ms-icon-144x144.png' %}">
-    <meta name="theme-color" content="#ffffff">
-    <!-- Vendors styles-->
-    <link rel="stylesheet" href="{% static 'coreui/vendors/simplebar/css/simplebar.css' %}">
-    <link rel="stylesheet" href="{% static 'coreui/css/vendors/simplebar.css' %}">
-    <!-- Main styles for this application-->
-    <link href="{% static 'coreui/css/style.css' %}" rel="stylesheet">
-    <!-- We use those styles to show code examples, you should remove them in your application.-->
-    <link href="{% static 'coreui/css/examples.css' %}" rel="stylesheet">
-    <script src="{% static 'coreui/js/config.js' %}"></script>
-    <script src="{% static 'coreui/js/color-modes.js' %}"></script>
-    <script src="{% static 'custom/js/jquery-3.7.1.min.js' %}" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    <script src="{% static 'custom/js/dataTables.min.js' %}"></script>
-    <script src="{% static 'custom/js/dataTables.bootstrap5.min.js' %}"></script>
-    <link href="{% static 'coreui/vendors/@coreui/chartjs/css/coreui-chartjs.css' %}" rel="stylesheet">
-    <link href="{% static 'custom/css/dataTables.bootstrap5.min.css' %}"  rel="stylesheet">
+  <!-- Preloader -->
+  <div class="preloader flex-column justify-content-center align-items-center">
+    <img class="animation__shake" src="{% static 'adminlte/dist/img/AdminLTELogo.png' %}" alt="AdminLTELogo" height="60" width="60">
+  </div>
 
-</head>
+  <!-- Navbar -->
+  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+    <!-- Left navbar links -->
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+      </li>
+    </ul>
 
+    <!-- Right navbar links -->
+    <ul class="navbar-nav ml-auto">
 
-<body>
-    <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
-      <div class="sidebar-header border-bottom">
-        <div class="sidebar-brand">
-          <svg class="sidebar-brand-full" width="88" height="32" alt="CoreUI Logo">
-            <use xlink:href="{% static 'coreui/assets/brand/coreui.svg' %}#full"></use>
-          </svg>
-          <svg class="sidebar-brand-narrow" width="32" height="32" alt="CoreUI Logo">
-            <use xlink:href="{% static 'coreui/assets/brand/coreui.svg#signet' %}"></use>
-          </svg>
+      <!-- Notifications Dropdown Menu -->
+      <!-- <li class="nav-item dropdown">
+        <a class="nav-link" data-toggle="dropdown" href="#">
+          <i class="far fa-bell"></i>
+          <span class="badge badge-warning navbar-badge">15</span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+          <span class="dropdown-item dropdown-header">15 Notifications</span>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item">
+            <i class="fas fa-envelope mr-2"></i> 4 new messages
+            <span class="float-right text-muted text-sm">3 mins</span>
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item">
+            <i class="fas fa-users mr-2"></i> 8 friend requests
+            <span class="float-right text-muted text-sm">12 hours</span>
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item">
+            <i class="fas fa-file mr-2"></i> 3 new reports
+            <span class="float-right text-muted text-sm">2 days</span>
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item dropdown-footer">See All Notifications</a>
         </div>
-        <button class="btn-close d-lg-none" type="button" data-coreui-dismiss="offcanvas" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector(&quot;#sidebar&quot;)).toggle()"></button>
+      </li> -->
+      <li class="nav-item">
+        <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+          <i class="fas fa-expand-arrows-alt"></i>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-widget="control-sidebar" data-controlsidebar-slide="true" href="#" role="button">
+          <i class="fas fa-th-large"></i>
+        </a>
+      </li>
+    </ul>
+  </nav>
+  <!-- /.navbar -->
+
+  <!-- Main Sidebar Container -->
+  <aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <!-- Brand Logo -->
+    <a href="/" class="brand-link">
+      <img src="{% static 'adminlte/dist/img/AdminLTELogo.png' %}" alt="Tron Logo" class="brand-image img-circle elevation-3" style="opacity: .8'">
+      <span class="brand-text font-weight-light">Tron</span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Sidebar user panel (optional) -->
+      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+        <div class="image">
+          <img src="{% static 'adminlte/dist/img/user2-160x160.jpg' %}" class="img-circle elevation-2" alt="User Image'">
+        </div>
+        <div class="info">
+          <a href="#" class="d-block">Alexander Pierce</a>
+        </div>
       </div>
-      <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
-        <!-- <li class="nav-item"><a class="nav-link {% if '/dashboard' in request.path %}active{% endif %}" href="/dashboard">
-            <svg class="nav-icon">
-              <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-speedometer"></use>
-            </svg> Dashboard<span class="badge badge-sm bg-info ms-auto">NEW</span></a></li> -->
-        <li class="nav-title">Catalog</li>
-        <li class="nav-item"><a class="nav-link {% if '/applications' in request.path %}active{% endif %}" href="/applications/">
-            <svg class="nav-icon">
-              <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-applications"></use>
-            </svg> Applications</a></li>
-        <li class="nav-title">Administration</li>
-        <li class="nav-item"><a class="nav-link" href="#">
-            <svg class="nav-icon">
-                <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/brand.svg' %}#cib-kubernetes"></use>
-              </svg> Clusters</a></li>
-        <li class="nav-item">
-          <a class="nav-link {% if '/settings' in request.path %}active{% endif %}" href="/settings">
-          <svg class="nav-icon">
-              <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-settings"></use>
-          </svg> Settings</a>
-        </li>
-      </ul>
-      <div class="sidebar-footer border-top d-none d-md-flex">
-        <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
+
+      <!-- SidebarSearch Form -->
+      <div class="form-inline">
+        <div class="input-group" data-widget="sidebar-search">
+          <input class="form-control form-control-sidebar" type="search" placeholder="Search" aria-label="Search">
+          <div class="input-group-append">
+            <button class="btn btn-sidebar">
+              <i class="fas fa-search fa-fw"></i>
+            </button>
+          </div>
+        </div>
       </div>
+
+      <!-- Sidebar Menu -->
+      <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+          <!-- Add icons to the links using the .nav-icon class
+               with font-awesome or any other icon font library -->
+          <li class="nav-header">SERVICE CATALOG</li>
+          <li class="nav-item">
+            <a href="/applications/" class="nav-link {% if '/applications' in request.path %}active{% endif %}">
+              <i class="nav-icon fas fa-bars"></i>
+              <p>Applications</p>
+            </a>
+          </li>
+          <li class="nav-header">ADMINISTRATION</li>
+          <li class="nav-item">
+            <a href="/settings" class="nav-link {% if '/settings' in request.path %}active{% endif %}">
+              <i class="nav-icon fas fa-cog"> </i>
+              <p> Settings </p>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <!-- /.sidebar-menu -->
     </div>
-    <div class="wrapper d-flex flex-column min-vh-100">
-      <header class="header header-sticky p-0 mb-4">
-        <div class="container-fluid border-bottom px-4">
-          <button class="header-toggler" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).togunfoldablegle()" style="margin-inline-start: -14px;">
-            <svg class="icon icon-lg">
-              <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-menu"></use>
-            </svg>
-          </button>
-          <ul class="header-nav">
-            <li class="nav-item py-1">
-              <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
-            </li>
-            <li class="nav-item dropdown">
-              <button class="btn btn-link nav-link py-2 px-2 d-flex align-items-center" type="button" aria-expanded="false" data-coreui-toggle="dropdown">
-                <svg class="icon icon-lg theme-icon-active">
-                  <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-contrast"></use>
-                </svg>
-              </button>
-              <ul class="dropdown-menu dropdown-menu-end" style="--cui-dropdown-min-width: 8rem;">
-                <li>
-                  <button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="light">
-                    <svg class="icon icon-lg me-3">
-                      <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-sun"></use>
-                    </svg>Light
-                  </button>
-                </li>
-                <li>
-                  <button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="dark">
-                    <svg class="icon icon-lg me-3">
-                      <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-moon"></use>
-                    </svg>Dark
-                  </button>
-                </li>
-                <li>
-                  <button class="dropdown-item d-flex align-items-center active" type="button" data-coreui-theme-value="auto">
-                    <svg class="icon icon-lg me-3">
-                      <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-contrast"></use>
-                    </svg>Auto
-                  </button>
-                </li>
-              </ul>
-            </li>
-            <li class="nav-item py-1">
-              <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
-            </li>
-            <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
-                <div class="avatar avatar-md"><img class="avatar-img" src="{% static 'coreui/assets/img/avatars/8.jpg' %}" alt="user@email.com"></div>
-              </a>
-              <div class="dropdown-menu dropdown-menu-end pt-0">
-                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div><a class="dropdown-item" href="#">
-                  <svg class="icon me-2">
-                    <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-bell"></use>
-                  </svg> Updates<span class="badge badge-sm bg-info ms-2">42</span></a><a class="dropdown-item" href="#">
-                  <svg class="icon me-2">
-                    <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-envelope-open"></use>
-                  </svg> Messages<span class="badge badge-sm bg-success ms-2">42</span></a><a class="dropdown-item" href="#">
-                  <svg class="icon me-2">
-                    <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-task"></use>
-                  </svg> Tasks<span class="badge badge-sm bg-danger ms-2">42</span></a><a class="dropdown-item" href="#">
-                  <svg class="icon me-2">
-                    <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-comment-square"></use>
-                  </svg> Comments<span class="badge badge-sm bg-warning ms-2">42</span></a>
-                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold my-2">
-                  <div class="fw-semibold">Settings</div>
-                </div><a class="dropdown-item" href="#">
-                  <svg class="icon me-2">
-                    <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-user"></use>
-                  </svg> Profile</a><a class="dropdown-item" href="#">
-                  <svg class="icon me-2">
-                    <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-settings"></use>
-                  </svg> Settings</a><a class="dropdown-item" href="#">
-                  <svg class="icon me-2">
-                    <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-credit-card"></use>
-                  </svg> Payments<span class="badge badge-sm bg-secondary ms-2">42</span></a><a class="dropdown-item" href="#">
-                  <svg class="icon me-2">
-                    <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-file"></use>
-                  </svg> Projects<span class="badge badge-sm bg-primary ms-2">42</span></a>
-                <div class="dropdown-divider"></div><a class="dropdown-item" href="#">
-                  <svg class="icon me-2">
-                    <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-lock-locked"></use>
-                  </svg> Lock Account</a><a class="dropdown-item" href="#">
-                  <svg class="icon me-2">
-                    <use xlink:href="{% static 'coreui/vendors/@coreui/icons/svg/free.svg' %}#cil-account-logout"></use>
-                  </svg> Logout</a>
-              </div>
-            </li>
-          </ul>
-        </div>
-        <div class="container-fluid px-4">
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb my-0">
-              {% generate_breadcrumbs request as breadcrumbs %}
-              {% for breadcrumb in breadcrumbs %}
-                  {% if not forloop.last %}
-                      <li class="breadcrumb-item">
-                          <a href="{{ breadcrumb.url }}">{{ breadcrumb.name }}</a>
-                      </li>
-                  {% else %}
-                      <li class="breadcrumb-item active" aria-current="page">{{ breadcrumb.name }}</li>
-                  {% endif %}
-              {% endfor %}
-            </ol>
-          </nav>
-        </div>
-      </header>
-      <div class="body flex-grow-1">
-        {% block content %}
-        {% endblock %}
-      </div>
-      <footer class="footer px-4">
-        <div><a href="https://coreui.io">CoreUI </a><a href="https://coreui.io/product/free-bootstrap-admin-template/">Bootstrap Admin Template</a> © 2024 creativeLabs.</div>
-        <div class="ms-auto">Powered by&nbsp;<a href="https://coreui.io/docs/">CoreUI UI Components</a></div>
-      </footer>
+    <!-- /.sidebar -->
+  </aside>
+
+  {% block content %}
+  {% endblock %}
+
+  <footer class="main-footer">
+    <strong>Copyright &copy; 2014-2021 <a href="https://adminlte.io">AdminLTE.io</a>.</strong>
+    All rights reserved.
+    <div class="float-right d-none d-sm-inline-block">
+      <b>Version</b> 3.2.0
     </div>
-    <!-- CoreUI and necessary plugins-->
-    <script src="{% static 'coreui/vendors/@coreui/coreui/js/coreui.bundle.min.js' %}"></script>
-    <script src="{% static 'coreui/vendors/simplebar/js/simplebar.min.js' %}"></script>
-    <script>
-      const header = document.querySelector('header.header');
+  </footer>
 
-      document.addEventListener('scroll', () => {
-        if (header) {
-          header.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0);
-        }
-      });
-    </script>
-    <!-- Plugins and scripts required by this view-->
-    <script src="{% static 'coreui/vendors/chart.js/js/chart.umd.js' %}"></script>
-    <script src="{% static 'coreui/vendors/@coreui/chartjs/js/coreui-chartjs.js' %}"></script>
-    <script src="{% static 'coreui/vendors/@coreui/utils/js/index.js' %}"></script>
-    <script src="{% static 'coreui/js/main.js' %}"></script>
+  <!-- Control Sidebar -->
+  <aside class="control-sidebar control-sidebar-dark">
+    <!-- Control sidebar content goes here -->
+  </aside>
+  <!-- /.control-sidebar -->
+</div>
+<!-- ./wrapper -->
 
-  </body>
-
-
-
-
+<!-- jQuery -->
+<script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script>
+<!-- jQuery UI 1.11.4 -->
+<script src="{% static 'adminlte/plugins/jquery-ui/jquery-ui.min.js' %}"></script>
+<!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
+<script>
+  $.widget.bridge('uibutton', $.ui.button)
+</script>
+<!-- Bootstrap 4 -->
+<script src="{% static 'adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<!-- ChartJS -->
+<script src="{% static 'adminlte/plugins/chart.js/Chart.min.js' %}"></script>
+<!-- Sparkline -->
+<script src="{% static 'adminlte/plugins/sparklines/sparkline.js' %}"></script>
+<!-- JQVMap -->
+<script src="{% static 'adminlte/plugins/jqvmap/jquery.vmap.min.js' %}"></script>
+<script src="{% static 'adminlte/plugins/jqvmap/maps/jquery.vmap.usa.js' %}"></script>
+<!-- jQuery Knob Chart -->
+<script src="{% static 'adminlte/plugins/jquery-knob/jquery.knob.min.js' %}"></script>
+<!-- daterangepicker -->
+<script src="{% static 'adminlte/plugins/moment/moment.min.js' %}"></script>
+<script src="{% static 'adminlte/plugins/daterangepicker/daterangepicker.js' %}"></script>
+<!-- Tempusdominus Bootstrap 4 -->
+<script src="{% static 'adminlte/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js' %}"></script>
+<!-- Summernote -->
+<script src="{% static 'adminlte/plugins/summernote/summernote-bs4.min.js' %}"></script>
+<!-- overlayScrollbars -->
+<script src="{% static 'adminlte/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js' %}"></script>
+<!-- AdminLTE App -->
+<script src="{% static 'adminlte/dist/js/adminlte.js' %}"></script>
+</body>
 </html>

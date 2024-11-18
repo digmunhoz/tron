@@ -110,6 +110,7 @@ class WebappDeployCompletedResponse(WebappDeploy):
     healthcheck: WebappDeployHealthcheck
     cpu: condecimal(max_digits=3, decimal_places=2)
     memory: int
+    environment: Environment
 
     model_config = ConfigDict(
         from_attributes=True,

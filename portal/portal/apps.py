@@ -6,4 +6,4 @@ class PortalConfig(AppConfig):
     name = 'portal'
 
     def ready(self):
-        import portal.templatetags.breadcrumbs
+        import portal.templatetags.custom_filters

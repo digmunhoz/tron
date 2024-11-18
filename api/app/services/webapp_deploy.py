@@ -95,8 +95,8 @@ class WebappDeployService:
                         kubernetes_payload, operation="update"
                     )
 
-                    db.commit()
-                    db.refresh(db_webapp_deploy)
+                db.commit()
+                db.refresh(db_webapp_deploy)
 
             except Exception as e:
                 db.rollback()
