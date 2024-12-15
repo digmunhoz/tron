@@ -19,7 +19,10 @@ from django.urls import path
 
 from portal.views import ApplicationsView, ApplicationDetailView, ApplicationNewlView
 from portal.views import HomeView
-from portal.views import SettingsView
+from portal.views import NamespacesView
+from portal.views import EnvironmentsView
+from portal.views import ClustersView
+from portal.views import WorkloadsView
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
@@ -27,5 +30,8 @@ urlpatterns = [
     path('applications/', ApplicationsView.as_view(), name='applications_index'),
     path('applications/<uuid:uuid>/', ApplicationDetailView.as_view(), name='application_detail'),
     path('applications/new/', ApplicationNewlView.as_view(), name='application_new'),
-    path('settings/', SettingsView.as_view(), name='settings_index'),
+    path('namespaces/', NamespacesView.as_view(), name='namespace_index'),
+    path('environments/', EnvironmentsView.as_view(), name='environment_index'),
+    path('workloads/', WorkloadsView.as_view(), name='workload_index'),
+    path('clusters/', ClustersView.as_view(), name='cluster_index'),
 ]

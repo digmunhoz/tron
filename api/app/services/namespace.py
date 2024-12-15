@@ -67,6 +67,15 @@ class NamespaceService:
                 db.refresh(db_namespace)
                 return db_namespace
 
+        query_namespace = (
+            db.query(NamespaceModel.Namespace)
+            .filter(NamespaceModel.Namespace.name == namespace.name)
+            .first()
+        )
+
+        if  query_namespace:
+            raise HTTPException(status_code=400, detail="Namespace name already taken")
+
         new_namespace = NamespaceModel.Namespace(uuid=uuid4(), name=namespace.name)
         db.add(new_namespace)
         db.commit()

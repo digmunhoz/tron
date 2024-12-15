@@ -12,27 +12,37 @@ class TronAPIClient:
             response = requests.get(f"{self.base_url}{endpoint}", params=params)
             response.raise_for_status()
             return response.json()
-        except requests.RequestException as e:
-            raise APIError(f"Error fetching data: {str(e)}")
+        except requests.RequestException:
+            return {"status": "error", "message": response.json().get("detail")}
 
     def _post(self, endpoint, data=None):
         try:
             response = requests.post(f"{self.base_url}{endpoint}", json=data)
             response.raise_for_status()
             return response.json()
-        except requests.RequestException as e:
-            raise APIError(f"Error posting data: {str(e)}")
+        except requests.RequestException:
+            return {"status": "error", "message": response.json().get("detail")}
+
+    def _delete(self, endpoint):
+        try:
+            response = requests.delete(f"{self.base_url}{endpoint}")
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException:
+            return {"status": "error", "message": response.json().get("detail")}
 
     def _put(self, endpoint, data):
         try:
             headers = {
-                'content-type': 'application/json',
+                "content-type": "application/json",
             }
-            response = requests.put(f"{self.base_url}{endpoint}", json=data, headers=headers)
+            response = requests.put(
+                f"{self.base_url}{endpoint}", json=data, headers=headers
+            )
             response.raise_for_status()
             return response.json()
-        except requests.RequestException as e:
-            raise APIError(f"Error posting data: {str(e)}")
+        except requests.RequestException:
+            return {"status": "error", "message": response.json().get("detail")}
 
     def list_workloads(self):
         return self._get("/workloads/")
@@ -63,3 +73,21 @@ class TronAPIClient:
 
     def create_webapp_deploy(self, data):
         return self._post(f"/webapps/deploys/", data=data)
+
+    def create_namespace(self, data):
+        return self._post(f"/namespaces/", data=data)
+
+    def update_namespace(self, uuid, data):
+        return self._put(f"/namespaces/{uuid}", data=data)
+
+    def delete_namespace(self, uuid):
+        return self._delete(f"/namespaces/{uuid}")
+
+    def create_cluster(self, data):
+        return self._post(f"/clusters/", data=data)
+
+    def update_cluster(self, uuid, data):
+        return self._put(f"/clusters/{uuid}", data=data)
+
+    def delete_cluster(self, uuid):
+        return self._delete(f"/clusters/{uuid}")
