@@ -15,10 +15,16 @@ class ClustersView(View):
     def post(self, request):
         name = request.POST.get("name")
         uuid = request.POST.get("uuid")
+        api = request.POST.get("api")
+        environment_uuid = request.POST.get("environment_uuid")
+        token = request.POST.get("token")
         action = request.POST.get("action")
 
         payload = {
-            "name": name
+            "name": name,
+            "api_address": api,
+            "environment_uuid": environment_uuid,
+            "token": token,
         }
 
         if action == "update":

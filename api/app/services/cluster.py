@@ -17,10 +17,14 @@ class ClusterService:
     ):
 
         k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
-        success, connection_message = k8s_client.validate_connection()
 
-        if not success:
-            raise HTTPException(status_code=400, detail=connection_message)
+        try:
+            success, connection_message = k8s_client.validate_connection()
+            if not success:
+                raise HTTPException(status_code=400, detail=connection_message)
+        except Exception as e:
+            error_message = str(e) if not 'connection_message' in locals() else connection_message
+            raise HTTPException(status_code=400, detail=f"Connection validation failed: {error_message}")
 
         if cluster_uuid:
             db_cluster = (
@@ -109,6 +113,7 @@ class ClusterService:
                 "uuid": cluster.uuid,
                 "name": cluster.name,
                 "api_address": cluster.api_address,
+                "token": cluster.token,
                 "environment": cluster.environment,
                 "detail": connection_message,
             }

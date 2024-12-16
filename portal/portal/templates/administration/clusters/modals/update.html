@@ -24,10 +24,31 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-sm-6">
+                        <div class="col-sm-4">
                             <div class="form-group">
                                 <label for="name">Name</label>
                                 <input type="text" required="" class="form-control" id="input_name" name="name" value="">
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label for="api">API Address</label>
+                                <input type="text" required="" class="form-control" id="input_api" name="api" value="">
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label for="api">Environment</label>
+                                <input type="text" disabled class="form-control" id="environment_uuid" name="environment_uuid" value="">
+                                <input type="hidden" name="environment_uuid" id="hidden_environment_uuid" value="">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="form-group">
+                                <label for="token">Token</label>
+                                <textarea class="form-control" rows="6" spellcheck="false" id="input_token" name="token"></textarea>
                             </div>
                         </div>
                     </div>

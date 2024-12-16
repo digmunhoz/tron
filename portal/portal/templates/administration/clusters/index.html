@@ -51,7 +51,7 @@
                                                 <th class="sorting">Environment</th>
                                                 <th class="sorting">API</th>
                                                 <th class="sorting">Status</th>
-                                                <th style="width: 14%; text-align: center;" class="sorting">Actions</th>
+                                                <th style="width: 15%; text-align: center;" class="sorting">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -91,7 +91,11 @@
                                                         <div class="btn-group">
                                                             <button type="button" class="btn btn-outline-primary btn-xs modal-update"
                                                                 data-uuid="{{ cluster.uuid }}"
-                                                                data-name="{{ cluster.name }}">
+                                                                data-name="{{ cluster.name }}"
+                                                                data-token="{{ cluster.token }}"
+                                                                data-environment_name="{{ cluster.environment.name }}"
+                                                                data-environment_uuid="{{ cluster.environment.uuid }}"
+                                                                data-api="{{ cluster.api_address }}">
                                                                 <i class="fas fa-edit"></i> Edit
                                                             </button>
                                                         </div>
@@ -143,11 +147,19 @@
             button.addEventListener('click', async function () {
                 const uuid = this.dataset.uuid;
                 const name = this.dataset.name;
+                const api = this.dataset.api;
+                const token = this.dataset.token;
+                const environment_name = this.dataset.environment_name;
+                const environment_uuid = this.dataset.environment_uuid;
 
                 try {
                     document.getElementById('disabled_uuid').value = uuid;
                     document.getElementById('hidden_uuid').value = uuid;
                     document.getElementById('input_name').value = name;
+                    document.getElementById('input_api').value = api;
+                    document.getElementById('input_token').value = token;
+                    document.getElementById('environment_uuid').value = environment_name;
+                    document.getElementById('hidden_environment_uuid').value = environment_uuid;
                     document.getElementById('spinner').remove();
                 } catch (error) {
                     document.getElementById('modal-body').innerHTML = 'Erro ao carregar dados.';

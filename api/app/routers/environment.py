@@ -8,7 +8,7 @@ from uuid import UUID
 router = APIRouter()
 
 
-@router.post("/environments", response_model=schemas.Environment)
+@router.post("/environments/", response_model=schemas.Environment)
 def create_environment(
     environment: schemas.EnvironmentBase,
     uuid: UUID = None,

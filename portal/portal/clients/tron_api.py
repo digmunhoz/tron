@@ -91,3 +91,21 @@ class TronAPIClient:
 
     def delete_cluster(self, uuid):
         return self._delete(f"/clusters/{uuid}")
+
+    def create_workload(self, data):
+        return self._post(f"/workloads/", data=data)
+
+    def update_workload(self, uuid, data):
+        return self._put(f"/workloads/{uuid}", data=data)
+
+    def delete_workload(self, uuid):
+        return self._delete(f"/workloads/{uuid}")
+
+    def create_environment(self, data):
+        return self._post(f"/environments/", data=data)
+
+    def update_environment(self, uuid, data):
+        return self._put(f"/environments/{uuid}", data=data)
+
+    def delete_environment(self, uuid):
+        return self._delete(f"/environments/{uuid}")

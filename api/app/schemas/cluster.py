@@ -10,29 +10,19 @@ class ClusterBase(BaseModel):
     api_address: str
     token: str
 
-
 class ClusterCreate(ClusterBase):
     environment_uuid: UUID
 
-
-class ClusterUpdate(ClusterBase):
-    pass
-
-
-class ClusterResponse(BaseModel):
+class ClusterResponse(ClusterBase):
     uuid: UUID
-    name: str
-    api_address: str
 
     model_config = ConfigDict(
         from_attributes=True,
     )
 
 
-class ClusterResponseWithValidation(BaseModel):
+class ClusterResponseWithValidation(ClusterBase):
     uuid: UUID
-    name: str
-    api_address: str
     environment: Environment
     detail: dict
 

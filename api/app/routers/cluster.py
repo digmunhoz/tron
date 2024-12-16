@@ -19,7 +19,7 @@ def create_cluster(
 
 @router.put("/clusters/{uuid}", response_model=schemas.ClusterResponse)
 def update_cluster(
-    cluster: schemas.ClusterUpdate,
+    cluster: schemas.ClusterCreate,
     uuid: UUID = None,
     db: Session = Depends(database.get_db),
 ):
