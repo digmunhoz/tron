@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, validator
+from pydantic import BaseModel, ConfigDict, field_validator
 from uuid import UUID
 from datetime import datetime
 
@@ -6,7 +6,7 @@ from datetime import datetime
 class NamespaceBase(BaseModel):
     name: str
 
-    @validator("name")
+    @field_validator("name")
     def no_spaces_allowed(cls, value):
         if " " in value:
             raise ValueError("Name must not contain spaces.")
