@@ -72,7 +72,8 @@
                                                     <form action="" method="POST">
                                                         {% csrf_token %}
                                                         <div class="btn-group">
-                                                            <button type="button" class="btn btn-outline-primary btn-xs modal-update"
+                                                            <button type="button"
+                                                                class="btn btn-outline-primary btn-xs modal-update"
                                                                 data-uuid="{{ namespace.uuid }}"
                                                                 data-name="{{ namespace.name }}">
                                                                 <i class="fas fa-edit"></i> Edit
@@ -127,14 +128,10 @@
                 const uuid = this.dataset.uuid;
                 const name = this.dataset.name;
 
-                try {
-                    document.getElementById('disabled_uuid').value = uuid;
-                    document.getElementById('hidden_uuid').value = uuid;
-                    document.getElementById('input_name').value = name;
-                    document.getElementById('spinner').remove();
-                } catch (error) {
-                    document.getElementById('modal-body').innerHTML = 'Erro ao carregar dados.';
-                }
+                document.getElementById('disabled_uuid').value = uuid;
+                document.getElementById('hidden_uuid').value = uuid;
+                document.getElementById('input_name').value = name;
+
 
                 $('#modalUpdate').modal('show');
             });
