@@ -1,5 +1,5 @@
 import { ReactNode, useState, useMemo } from 'react'
-import { Search, X } from 'lucide-react'
+import { Search, X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import ActionMenu, { ActionMenuItem } from './ActionMenu'
 
 export interface Column<T> {
@@ -7,6 +7,7 @@ export interface Column<T> {
   label: string
   render?: (item: T) => ReactNode
   searchable?: boolean
+  sortable?: boolean
   width?: string
 }
 
@@ -34,6 +35,8 @@ function DataTable<T>({
   searchPlaceholder = 'Buscar...',
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [sortColumn, setSortColumn] = useState<keyof T | string | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   const colorClasses: Record<string, { spinner: string }> = {
     blue: { spinner: 'border-blue-200 border-t-blue-600' },
@@ -47,26 +50,86 @@ function DataTable<T>({
   const colSpan = columns.length + (actions ? 1 : 0)
 
   const filteredData = useMemo(() => {
-    if (!searchTerm.trim()) return data
+    let result = data
 
-    const searchLower = searchTerm.toLowerCase().trim()
-    const searchableColumns = columns.filter((col) => col.searchable !== false)
+    // Aplicar filtro de busca
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim()
+      const searchableColumns = columns.filter((col) => col.searchable !== false)
 
-    return data.filter((item) => {
-      return searchableColumns.some((column) => {
-        const value = item[column.key as keyof T]
-        if (value === null || value === undefined) return false
+      result = data.filter((item) => {
+        return searchableColumns.some((column) => {
+          const value = item[column.key as keyof T]
+          if (value === null || value === undefined) return false
 
-        if (column.render) {
+          if (column.render) {
+            const stringValue = String(value).toLowerCase()
+            return stringValue.includes(searchLower)
+          }
+
           const stringValue = String(value).toLowerCase()
           return stringValue.includes(searchLower)
-        }
-
-        const stringValue = String(value).toLowerCase()
-        return stringValue.includes(searchLower)
+        })
       })
-    })
-  }, [data, searchTerm, columns])
+    }
+
+    // Aplicar ordenação
+    if (sortColumn) {
+      const column = columns.find((col) => col.key === sortColumn)
+      if (column && column.sortable === true) {
+        result = [...result].sort((a, b) => {
+          const aValue = a[sortColumn as keyof T]
+          const bValue = b[sortColumn as keyof T]
+
+          // Tratar valores nulos/undefined
+          if (aValue === null || aValue === undefined) return 1
+          if (bValue === null || bValue === undefined) return -1
+
+          // Comparação numérica
+          if (typeof aValue === 'number' && typeof bValue === 'number') {
+            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
+          }
+
+          // Comparação de strings
+          const aStr = String(aValue).toLowerCase()
+          const bStr = String(bValue).toLowerCase()
+
+          if (sortDirection === 'asc') {
+            return aStr.localeCompare(bStr)
+          } else {
+            return bStr.localeCompare(aStr)
+          }
+        })
+      }
+    }
+
+    return result
+  }, [data, searchTerm, columns, sortColumn, sortDirection])
+
+  const handleSort = (columnKey: keyof T | string) => {
+    const column = columns.find((col) => col.key === columnKey)
+    if (!column || column.sortable !== true) return
+
+    if (sortColumn === columnKey) {
+      // Alternar direção se já está ordenando por esta coluna
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      // Nova coluna, começar com ascendente
+      setSortColumn(columnKey)
+      setSortDirection('asc')
+    }
+  }
+
+  const getSortIcon = (columnKey: keyof T | string) => {
+    if (sortColumn !== columnKey) {
+      return <ArrowUpDown className="h-3 w-3 text-slate-400" />
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="h-3 w-3 text-blue-600" />
+    ) : (
+      <ArrowDown className="h-3 w-3 text-blue-600" />
+    )
+  }
 
   return (
     <div className="glass-effect rounded-xl shadow-soft overflow-hidden">
@@ -99,15 +162,24 @@ function DataTable<T>({
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50/80">
             <tr>
-              {columns.map((column) => (
-                <th
-                  key={String(column.key)}
-                  className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider"
-                  style={column.width ? { width: column.width } : undefined}
-                >
-                  {column.label}
-                </th>
-              ))}
+              {columns.map((column) => {
+                const isSortable = column.sortable === true
+                return (
+                  <th
+                    key={String(column.key)}
+                    className={`px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider ${
+                      isSortable ? 'cursor-pointer hover:bg-slate-100/50 transition-colors select-none' : ''
+                    }`}
+                    style={column.width ? { width: column.width } : undefined}
+                    onClick={() => isSortable && handleSort(column.key)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{column.label}</span>
+                      {isSortable && getSortIcon(column.key)}
+                    </div>
+                  </th>
+                )
+              })}
               {actions && (
                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-600 uppercase tracking-wider">
                   Ações

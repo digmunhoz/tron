@@ -127,3 +127,32 @@ class Webapp(WebappBase):
         from_attributes=True,
     )
 
+
+class Pod(BaseModel):
+    name: str
+    status: str
+    restarts: int
+    cpu_requests: float
+    cpu_limits: float
+    memory_requests: int  # em MB
+    memory_limits: int  # em MB
+    age_seconds: int
+    host_ip: str | None = None
+
+
+class PodLogs(BaseModel):
+    logs: str
+    pod_name: str
+    container_name: str | None = None
+
+
+class PodCommandRequest(BaseModel):
+    command: list[str]
+    container_name: str | None = None
+
+
+class PodCommandResponse(BaseModel):
+    stdout: str
+    stderr: str
+    return_code: int
+

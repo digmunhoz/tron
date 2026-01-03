@@ -156,6 +156,7 @@ export interface ComponentTemplateConfigUpdate {
 
 export interface ApplicationComponent {
   uuid: string
+  name: string
   type: 'webapp' | 'worker' | 'cron'
   settings: Record<string, any> | null
   is_public: boolean
@@ -204,5 +205,34 @@ export interface InstanceCreate {
   image: string
   version: string
   enabled?: boolean
+}
+
+export interface Pod {
+  name: string
+  status: string
+  restarts: number
+  cpu_requests: number
+  cpu_limits: number
+  memory_requests: number  // em MB
+  memory_limits: number  // em MB
+  age_seconds: number
+  host_ip: string | null
+}
+
+export interface PodLogs {
+  logs: string
+  pod_name: string
+  container_name?: string | null
+}
+
+export interface PodCommandRequest {
+  command: string[]
+  container_name?: string | null
+}
+
+export interface PodCommandResponse {
+  stdout: string
+  stderr: string
+  return_code: number
 }
 

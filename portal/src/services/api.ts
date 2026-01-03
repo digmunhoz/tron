@@ -247,6 +247,29 @@ export const applicationComponentsApi = {
   delete: async (uuid: string): Promise<void> => {
     await api.delete(`/application_components/webapp/${uuid}`)
   },
+  getPods: async (uuid: string): Promise<Pod[]> => {
+    const response = await api.get<Pod[]>(`/application_components/webapp/${uuid}/pods`)
+    return response.data
+  },
+  deletePod: async (uuid: string, podName: string): Promise<void> => {
+    await api.delete(`/application_components/webapp/${uuid}/pods/${podName}`)
+  },
+  getPodLogs: async (uuid: string, podName: string, containerName?: string, tailLines: number = 100): Promise<PodLogs> => {
+    const params = new URLSearchParams()
+    if (containerName) {
+      params.append('container_name', containerName)
+    }
+    params.append('tail_lines', tailLines.toString())
+    const response = await api.get<PodLogs>(`/application_components/webapp/${uuid}/pods/${podName}/logs?${params.toString()}`)
+    return response.data
+  },
+  execPodCommand: async (uuid: string, podName: string, command: string[], containerName?: string): Promise<PodCommandResponse> => {
+    const response = await api.post<PodCommandResponse>(`/application_components/webapp/${uuid}/pods/${podName}/exec`, {
+      command,
+      container_name: containerName,
+    })
+    return response.data
+  },
 }
 
 // Instances

@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Trash2, Plus, Cloud, Info, Edit } from 'lucide-react'
-import { clustersApi, environmentsApi } from '../services/api'
-import type { Cluster, ClusterCreate } from '../types'
-import DataTable from '../components/DataTable'
+import { clustersApi, environmentsApi } from '../../services/api'
+import type { Cluster, ClusterCreate } from '../../types'
+import DataTable from '../../components/DataTable'
 
 function Clusters() {
   const [isOpen, setIsOpen] = useState(false)

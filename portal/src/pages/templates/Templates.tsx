@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Trash2, Plus, FileCode, Edit, ChevronDown, ChevronRight, Settings, ArrowUp, ArrowDown } from 'lucide-react'
-import { templatesApi, componentTemplateConfigsApi } from '../services/api'
+import { templatesApi, componentTemplateConfigsApi } from '../../services/api'
 import type {
   Template,
   TemplateCreate,
   TemplateUpdate,
   ComponentTemplateConfig,
   ComponentTemplateConfigCreate,
-} from '../types'
-import DataTable from '../components/DataTable'
+} from '../../types'
+import DataTable from '../../components/DataTable'
 
 // Variáveis disponíveis para templates webapp
 const WEBAPP_VARIABLES = {

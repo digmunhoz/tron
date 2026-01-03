@@ -2,6 +2,8 @@ import json
 
 from kubernetes import client
 from kubernetes.client.rest import ApiException
+from kubernetes.stream import stream
+from fastapi import HTTPException
 
 
 K8S_API_MAPPING = {
@@ -53,6 +55,7 @@ class K8sClient:
         self.configuration.host = url
         self.configuration.verify_ssl = verify_ssl
         self.configuration.api_key = {"authorization": f"Bearer {token}"}
+        self.api_client = client.ApiClient(self.configuration)
         self.api_client = client.ApiClient(self.configuration)
 
     def validate_connection(self):
@@ -165,6 +168,118 @@ class K8sClient:
             else:
                 raise e
 
+    def delete_pod(self, namespace: str, pod_name: str):
+        """
+        Deleta um pod específico do Kubernetes.
+
+        Args:
+            namespace: Nome do namespace
+            pod_name: Nome do pod
+
+        Returns:
+            True se deletado com sucesso, False caso contrário
+        """
+        try:
+            v1 = client.CoreV1Api(self.api_client)
+            v1.delete_namespaced_pod(name=pod_name, namespace=namespace, body=client.V1DeleteOptions())
+            return True
+        except ApiException as e:
+            if e.status == 404:
+                # Pod já não existe, não é um erro
+                return True
+            else:
+                print(f"Erro ao deletar pod {pod_name}: {e}")
+                raise e
+
+    def get_pod_logs(self, namespace: str, pod_name: str, container_name: str = None, tail_lines: int = 100, follow: bool = False):
+        """
+        Obtém os logs de um pod do Kubernetes.
+
+        Args:
+            namespace: Nome do namespace
+            pod_name: Nome do pod
+            container_name: Nome do container (opcional, se o pod tiver múltiplos containers)
+            tail_lines: Número de linhas finais a retornar (padrão: 100)
+            follow: Se True, segue os logs em tempo real (padrão: False)
+
+        Returns:
+            String com os logs do pod
+        """
+        try:
+            v1 = client.CoreV1Api(self.api_client)
+            logs = v1.read_namespaced_pod_log(
+                name=pod_name,
+                namespace=namespace,
+                container=container_name,
+                tail_lines=tail_lines,
+                follow=follow,
+                _preload_content=False
+            )
+            return logs.read().decode('utf-8')
+        except ApiException as e:
+            if e.status == 404:
+                raise HTTPException(status_code=404, detail=f"Pod {pod_name} not found")
+            else:
+                print(f"Erro ao obter logs do pod {pod_name}: {e}")
+                raise HTTPException(status_code=e.status, detail=f"Failed to get logs: {str(e)}")
+
+    def exec_pod_command(self, namespace: str, pod_name: str, command: list[str], container_name: str = None):
+        """
+        Executa um comando em um pod do Kubernetes.
+
+        Args:
+            namespace: Nome do namespace
+            pod_name: Nome do pod
+            command: Lista com o comando e argumentos (ex: ['ls', '-la'])
+            container_name: Nome do container (opcional, se o pod tiver múltiplos containers)
+
+        Returns:
+            Tupla (stdout, stderr, return_code)
+        """
+        try:
+            v1 = client.CoreV1Api(self.api_client)
+
+            # Executar comando usando stream
+            exec_command = stream(
+                v1.connect_get_namespaced_pod_exec,
+                pod_name,
+                namespace,
+                command=command,
+                container=container_name,
+                stderr=True,
+                stdin=False,
+                stdout=True,
+                tty=False,
+                _preload_content=False
+            )
+
+            stdout = ""
+            stderr = ""
+
+            while exec_command.is_open():
+                exec_command.update(timeout=1)
+                if exec_command.peek_stdout():
+                    stdout += exec_command.read_stdout()
+                if exec_command.peek_stderr():
+                    stderr += exec_command.read_stderr()
+
+            exec_command.close()
+
+            return {
+                "stdout": stdout,
+                "stderr": stderr,
+                "return_code": 0 if not stderr else 1
+            }
+        except ApiException as e:
+            if e.status == 404:
+                raise HTTPException(status_code=404, detail=f"Pod {pod_name} not found")
+            else:
+                print(f"Erro ao executar comando no pod {pod_name}: {e}")
+                raise HTTPException(status_code=e.status, detail=f"Failed to execute command: {str(e)}")
+        except Exception as e:
+            print(f"Erro ao executar comando no pod {pod_name}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to execute command: {str(e)}")
+
     def apply_or_delete_yaml_to_k8s(self, yaml_documents, operation="create"):
 
         for document in yaml_documents:
@@ -228,3 +343,128 @@ class K8sClient:
                         raise e
 
         return f"Documents applied successfully"
+
+    def list_pods(self, namespace: str, label_selector: str = None):
+        """
+        Lista pods de um namespace, opcionalmente filtrados por label selector.
+
+        Args:
+            namespace: Nome do namespace
+            label_selector: Seletor de labels (ex: "app=myapp")
+
+        Returns:
+            Lista de pods com informações formatadas
+        """
+        try:
+            v1 = client.CoreV1Api(self.api_client)
+
+            if label_selector:
+                pods = v1.list_namespaced_pod(namespace=namespace, label_selector=label_selector).items
+            else:
+                pods = v1.list_namespaced_pod(namespace=namespace).items
+
+            # Formatar dados dos pods
+            formatted_pods = []
+            for pod in pods:
+                # Calcular CPU e Memory dos containers
+                cpu_requests = 0
+                cpu_limits = 0
+                memory_requests = 0
+                memory_limits = 0
+
+                for container in pod.spec.containers:
+                    if container.resources:
+                        # Acessar requests (é um dict no Kubernetes Python client)
+                        if container.resources.requests:
+                            requests = container.resources.requests
+                            if 'cpu' in requests:
+                                cpu_str = str(requests['cpu'])
+                                cpu_requests += self._parse_cpu(cpu_str)
+                            if 'memory' in requests:
+                                mem_str = str(requests['memory'])
+                                memory_requests += self._parse_memory(mem_str)
+
+                        # Acessar limits (é um dict no Kubernetes Python client)
+                        if container.resources.limits:
+                            limits = container.resources.limits
+                            if 'cpu' in limits:
+                                cpu_str = str(limits['cpu'])
+                                cpu_limits += self._parse_cpu(cpu_str)
+                            if 'memory' in limits:
+                                mem_str = str(limits['memory'])
+                                memory_limits += self._parse_memory(mem_str)
+
+                # Status do pod
+                status = "Unknown"
+                if pod.status.phase:
+                    status = pod.status.phase
+
+                # Restarts
+                restarts = 0
+                if pod.status.container_statuses:
+                    for container_status in pod.status.container_statuses:
+                        if container_status.restart_count:
+                            restarts += container_status.restart_count
+
+                # Age (tempo desde a criação)
+                age_seconds = 0
+                if pod.metadata.creation_timestamp:
+                    from datetime import datetime, timezone
+                    now = datetime.now(timezone.utc)
+                    age_seconds = int((now - pod.metadata.creation_timestamp).total_seconds())
+
+                # Host IP (IP do nó onde o pod está rodando)
+                host_ip = pod.status.host_ip if pod.status.host_ip else None
+
+                formatted_pods.append({
+                    "name": pod.metadata.name,
+                    "status": status,
+                    "restarts": restarts,
+                    "cpu_requests": cpu_requests,
+                    "cpu_limits": cpu_limits,
+                    "memory_requests": memory_requests,
+                    "memory_limits": memory_limits,
+                    "age_seconds": age_seconds,
+                    "host_ip": host_ip,
+                })
+
+            return formatted_pods
+        except ApiException as e:
+            print(f"Erro ao listar pods: {e}")
+            return []
+
+    def _parse_cpu(self, cpu_str: str) -> float:
+        """Converte string de CPU (ex: '500m', '1', '0.5') para float."""
+        if not cpu_str:
+            return 0.0
+        cpu_str = cpu_str.strip()
+        if cpu_str.endswith('m'):
+            return float(cpu_str[:-1]) / 1000
+        return float(cpu_str)
+
+    def _parse_memory(self, memory_str: str) -> int:
+        """Converte string de memória (ex: '512Mi', '1Gi', '1000M') para MB."""
+        if not memory_str:
+            return 0
+        memory_str = memory_str.strip()
+
+        # Remover sufixos e converter
+        if memory_str.endswith('Ki'):
+            return int(memory_str[:-2]) // 1024
+        elif memory_str.endswith('Mi'):
+            return int(memory_str[:-2])
+        elif memory_str.endswith('Gi'):
+            return int(memory_str[:-2]) * 1024
+        elif memory_str.endswith('Ti'):
+            return int(memory_str[:-2]) * 1024 * 1024
+        elif memory_str.endswith('K'):
+            return int(memory_str[:-1]) // 1000
+        elif memory_str.endswith('M'):
+            return int(memory_str[:-1])
+        elif memory_str.endswith('G'):
+            return int(memory_str[:-1]) * 1000
+        elif memory_str.endswith('T'):
+            return int(memory_str[:-1]) * 1000 * 1000
+        else:
+            # Assumir bytes
+            return int(memory_str) // (1024 * 1024)

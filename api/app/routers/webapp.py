@@ -50,3 +50,53 @@ def delete_webapp(
 ):
     return WebappService.delete_webapp(db=db, uuid=uuid)
 
+
+@router.get("/{uuid}/pods", response_model=list[WebappSchemas.Pod])
+def get_webapp_pods(
+    uuid: UUID,
+    db: Session = Depends(get_db),
+):
+    return WebappService.get_webapp_pods(db=db, uuid=uuid)
+
+
+@router.delete("/{uuid}/pods/{pod_name}")
+def delete_webapp_pod(
+    uuid: UUID,
+    pod_name: str,
+    db: Session = Depends(get_db),
+):
+    return WebappService.delete_webapp_pod(db=db, uuid=uuid, pod_name=pod_name)
+
+
+@router.get("/{uuid}/pods/{pod_name}/logs", response_model=WebappSchemas.PodLogs)
+def get_webapp_pod_logs(
+    uuid: UUID,
+    pod_name: str,
+    container_name: str = None,
+    tail_lines: int = 100,
+    db: Session = Depends(get_db),
+):
+    return WebappService.get_webapp_pod_logs(
+        db=db,
+        uuid=uuid,
+        pod_name=pod_name,
+        container_name=container_name,
+        tail_lines=tail_lines
+    )
+
+
+@router.post("/{uuid}/pods/{pod_name}/exec", response_model=WebappSchemas.PodCommandResponse)
+def exec_webapp_pod_command(
+    uuid: UUID,
+    pod_name: str,
+    request: WebappSchemas.PodCommandRequest,
+    db: Session = Depends(get_db),
+):
+    return WebappService.exec_webapp_pod_command(
+        db=db,
+        uuid=uuid,
+        pod_name=pod_name,
+        command=request.command,
+        container_name=request.container_name
+    )
+

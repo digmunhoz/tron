@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Trash2, Plus, Globe } from 'lucide-react'
-import { environmentsApi } from '../services/api'
-import type { Environment, EnvironmentCreate } from '../types'
-import DataTable from '../components/DataTable'
+import { environmentsApi } from '../../services/api'
+import type { Environment, EnvironmentCreate } from '../../types'
+import DataTable from '../../components/DataTable'
 
 function Environments() {
   const [isOpen, setIsOpen] = useState(false)

@@ -88,11 +88,25 @@ class InstanceService:
     ):
         db_instance = (
             db.query(InstanceModel.Instance)
+            .options(
+                joinedload(InstanceModel.Instance.application),
+                joinedload(InstanceModel.Instance.environment),
+                joinedload(InstanceModel.Instance.components)
+            )
             .filter(InstanceModel.Instance.uuid == instance_uuid)
             .first()
         )
         if db_instance is None:
             raise HTTPException(status_code=404, detail="Instance not found")
+
+        # Verificar se houve mudança na imagem ou versão
+        image_changed = instance.image is not None and instance.image != db_instance.image
+        version_changed = instance.version is not None and instance.version != db_instance.version
+
+        # Verificar se houve mudança no enabled
+        enabled_changed = instance.enabled is not None and instance.enabled != db_instance.enabled
+        was_enabled = db_instance.enabled
+        will_be_enabled = instance.enabled if instance.enabled is not None else db_instance.enabled
 
         if instance.image is not None:
             db_instance.image = instance.image
@@ -100,6 +114,128 @@ class InstanceService:
             db_instance.version = instance.version
         if instance.enabled is not None:
             db_instance.enabled = instance.enabled
+
+        # Buscar todos os componentes associados à instância (será usado em múltiplos lugares)
+        components = (
+            db.query(ApplicationComponentModel.ApplicationComponent)
+            .options(
+                joinedload(ApplicationComponentModel.ApplicationComponent.instance)
+                .joinedload(InstanceModel.Instance.application),
+                joinedload(ApplicationComponentModel.ApplicationComponent.instance)
+                .joinedload(InstanceModel.Instance.environment),
+                joinedload(ApplicationComponentModel.ApplicationComponent.instances)
+            )
+            .filter(ApplicationComponentModel.ApplicationComponent.instance_id == db_instance.id)
+            .all()
+        )
+
+        # Buscar settings do ambiente (será usado em múltiplos lugares)
+        settings = (
+            db.query(SettingsModel.Settings)
+            .filter(SettingsModel.Settings.environment_id == db_instance.environment_id)
+            .all()
+        )
+        settings_serialized = serialize_settings(settings)
+
+        # Se a instância foi desativada (enabled mudou de True para False), remover componentes do Kubernetes
+        if enabled_changed and was_enabled and not will_be_enabled:
+            for component in components:
+                try:
+                    # Buscar cluster_instance associado
+                    cluster_instance = (
+                        db.query(ClusterInstanceModel.ClusterInstance)
+                        .filter(ClusterInstanceModel.ClusterInstance.application_component_id == component.id)
+                        .first()
+                    )
+
+                    if cluster_instance:
+                        cluster = cluster_instance.cluster
+                        application_component_serialized = serialize_application_component(component)
+                        component_type = component.type.value if hasattr(component.type, 'value') else str(component.type)
+
+                        # Deletar recursos do Kubernetes (mas manter no banco)
+                        k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+                        application_name = application_component_serialized.get("application_name")
+                        if application_name:
+                            k8s_client.ensure_namespace_exists(application_name)
+
+                        kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
+                            application_component_serialized, component_type, settings_serialized, db=db
+                        )
+                        k8s_client.apply_or_delete_yaml_to_k8s(
+                            kubernetes_payload, operation="delete"
+                        )
+                except Exception as e:
+                    # Log do erro mas continua com outros componentes
+                    print(f"Error removing component '{component.name}' from Kubernetes: {e}")
+
+        # Se a instância foi reativada (enabled mudou de False para True), reaplicar componentes no Kubernetes
+        elif enabled_changed and not was_enabled and will_be_enabled:
+            for component in components:
+                try:
+                    # Buscar cluster_instance associado
+                    cluster_instance = (
+                        db.query(ClusterInstanceModel.ClusterInstance)
+                        .filter(ClusterInstanceModel.ClusterInstance.application_component_id == component.id)
+                        .first()
+                    )
+
+                    if cluster_instance:
+                        cluster = cluster_instance.cluster
+                        application_component_serialized = serialize_application_component(component)
+                        component_type = component.type.value if hasattr(component.type, 'value') else str(component.type)
+
+                        # Reaplicar recursos no Kubernetes
+                        k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+                        application_name = application_component_serialized.get("application_name")
+                        if application_name:
+                            k8s_client.ensure_namespace_exists(application_name)
+
+                        kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
+                            application_component_serialized, component_type, settings_serialized, db=db
+                        )
+                        k8s_client.apply_or_delete_yaml_to_k8s(
+                            kubernetes_payload, operation="upsert"
+                        )
+                except Exception as e:
+                    # Log do erro mas continua com outros componentes
+                    print(f"Error reapplying component '{component.name}' to Kubernetes: {e}")
+
+        # Se a imagem ou versão mudou, precisamos reaplicar todos os componentes no Kubernetes
+        # (só se a instância estiver habilitada)
+        if (image_changed or version_changed) and db_instance.enabled:
+            # Reaplicar cada componente no Kubernetes
+            for component in components:
+                try:
+                    # Buscar cluster_instance associado
+                    cluster_instance = (
+                        db.query(ClusterInstanceModel.ClusterInstance)
+                        .filter(ClusterInstanceModel.ClusterInstance.application_component_id == component.id)
+                        .first()
+                    )
+
+                    if cluster_instance:
+                        cluster = cluster_instance.cluster
+                        application_component_serialized = serialize_application_component(component)
+                        component_type = component.type.value if hasattr(component.type, 'value') else str(component.type)
+
+                        # Reaplicar recursos no Kubernetes com a nova imagem/versão
+                        k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+
+                        # Verificar e criar namespace com o nome da aplicação se não existir
+                        application_name = application_component_serialized.get("application_name")
+                        if application_name:
+                            k8s_client.ensure_namespace_exists(application_name)
+
+                        kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
+                            application_component_serialized, component_type, settings_serialized, db=db
+                        )
+                        k8s_client.apply_or_delete_yaml_to_k8s(
+                            kubernetes_payload, operation="upsert"
+                        )
+                except Exception as e:
+                    # Log do erro mas continua com a atualização da instância e outros componentes
+                    print(f"Error updating component '{component.name}' in Kubernetes: {e}")
 
         db.commit()
         db.refresh(db_instance)
