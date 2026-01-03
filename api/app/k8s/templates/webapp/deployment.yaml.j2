@@ -1,20 +1,19 @@
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ application_settings.webapp_uuid }}"
-  namespace: "{{ application_settings.namespace_uuid }}"
+  name: "{{ application.component_name }}"
+  namespace: "{{ application.application_name }}"
   labels:
-    app: "{{ application_settings.webapp_uuid }}"
-    environment: "{{ application_settings.environment }}"
-    alias: "{{ application_settings.webapp_name }}"
-    namespace: "{{ application_settings.namespace_name }}"
+    app: "{{ application.component_name }}"
+    environment: "{{ application.environment }}"
+    alias: "{{ application.component_name }}"
+    namespace: "{{ application.application_name }}"
     tier: "tier-3"
     type: "web"
 spec:
   selector:
     matchLabels:
-      app: {{ application_settings.webapp_uuid }}
+      app: {{ application.component_name }}
   strategy:
     rollingUpdate:
       maxSurge: 50%
@@ -23,16 +22,16 @@ spec:
   template:
     metadata:
       annotations:
-        prometheus.io/port: "{{ application_settings.custom_metrics.port | string }}"
-        prometheus.io/scrape: "{{ application_settings.custom_metrics.enabled | string | lower }}"
-        prometheus.io/path: "{{ application_settings.custom_metrics.path | string }}"
+        prometheus.io/port: "{{ application.settings.custom_metrics.port| string }}"
+        prometheus.io/scrape: "{{ application.settings.custom_metrics.enabled | string | lower }}"
+        prometheus.io/path: "{{ application.settings.custom_metrics.path | string }}"
         sidecar.opentelemetry.io/inject: "true"
         instrumentation.opentelemetry.io/inject-java: "true"
       labels:
-        app: {{ application_settings.webapp_uuid }}
-        environment: "{{ application_settings.environment }}"
-        alias: {{ application_settings.webapp_name }}
-        namespace: "{{ application_settings.namespace_name }}"
+        app: {{ application.component_name }}
+        environment: "{{ application.environment }}"
+        alias: {{ application.component_name }}
+        namespace: "{{ application.application_name }}"
         tier: "tier-3"
         type: "web"
     spec:
@@ -50,57 +49,53 @@ spec:
       containers:
       - name: "teste"
         env:
-        {% for env in application_settings.envs -%}
+        {% for env in application.settings.envs -%}
         - name: {{env.key}}
           value: {{env.value}}
         {% endfor %}
-        image:  "{{ application_settings.image }}:{{ application_settings.version }}"
+        image:  "{{ application.image }}:{{ application.version }}"
         imagePullPolicy: Always
         livenessProbe:
-          {% if application_settings.healthcheck.protocol == "http" -%}
+          {% if application.settings.healthcheck.protocol == "http" -%}
           httpGet:
-            path: {{ application_settings.healthcheck.path }}
-            port: {{ application_settings.healthcheck.port | int }}
+            path: {{ application.settings.healthcheck.path }}
+            port: {{ application.settings.healthcheck.port | int }}
             scheme: HTTP
-          {% elif application_settings.healthcheck.protocol == "tcp" -%}
+          {% elif application.settings.healthcheck.protocol == "tcp" -%}
           tcpSocket:
-            port: {{ application_settings.healthcheck.port | int }}
+            port: {{ application.settings.healthcheck.port | int }}
           {% endif %}
-          failureThreshold: {{ application_settings.healthcheck.failure_threshold | int }}
-          initialDelaySeconds: {{ application_settings.healthcheck.initial_interval | int }}
-          periodSeconds: {{ application_settings.healthcheck.interval | int }}
+          failureThreshold: {{ application.settings.healthcheck.failure_threshold | int }}
+          initialDelaySeconds: {{ application.settings.healthcheck.initial_interval | int }}
+          periodSeconds: {{ application.settings.healthcheck.interval | int }}
           successThreshold: 1
-          timeoutSeconds: {{ application_settings.healthcheck.timeout | int }}
+          timeoutSeconds: {{ application.settings.healthcheck.timeout | int }}
         readinessProbe:
-          {% if application_settings.healthcheck.protocol == "http" -%}
+          {% if application.settings.healthcheck.protocol == "http" -%}
           httpGet:
-            path: {{ application_settings.healthcheck.path }}
-            port: {{ application_settings.healthcheck.port | int }}
+            path: {{ application.settings.healthcheck.path }}
+            port: {{ application.settings.healthcheck.port | int }}
             scheme: HTTP
-          {% elif application_settings.healthcheck.protocol == "tcp" -%}
+          {% elif application.settings.healthcheck.protocol == "tcp" -%}
           tcpSocket:
-            port: {{ application_settings.healthcheck.port | int }}
+            port: {{ application.settings.healthcheck.port | int }}
           {% endif %}
-          failureThreshold: {{ application_settings.healthcheck.failure_threshold | int }}
-          initialDelaySeconds: {{ application_settings.healthcheck.initial_interval | int }}
-          periodSeconds: {{ application_settings.healthcheck.interval | int }}
+          failureThreshold: {{ application.settings.healthcheck.failure_threshold | int }}
+          initialDelaySeconds: {{ application.settings.healthcheck.initial_interval | int }}
+          periodSeconds: {{ application.settings.healthcheck.interval | int }}
           successThreshold: 1
-          timeoutSeconds: {{ application_settings.healthcheck.timeout | int }}
+          timeoutSeconds: {{ application.settings.healthcheck.timeout | int }}
         resources:
           requests:
-            cpu: {{ application_settings.cpu }}
-            memory: {{ application_settings.memory }}Mi
+            cpu: {{ application.settings.cpu }}
+            memory: {{ application.settings.memory}}Mi
           limits:
-            cpu: {{ application_settings.cpu }}
-            memory: {{ application_settings.memory }}Mi
+            cpu: {{ application.settings.cpu }}
+            memory: {{ application.settings.memory}}Mi
       dnsConfig:
         options:
         - name: ndots
           value: "1"
-      {% if not environment_settings.disable_workload -%}
-      nodeSelector:
-        workload: {{ application_settings.workload }}
-      {% endif %}
       dnsPolicy: ClusterFirst
       enableServiceLinks: true
       restartPolicy: Always

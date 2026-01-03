@@ -66,7 +66,12 @@ class K8sClient:
             return (True, message)
         except ApiException as e:
             print(e.body)
-            message = {"status": "error", "message": json.loads(e.body)}
+            try:
+                error_body = json.loads(e.body) if e.body else {}
+                error_message = error_body.get("message", str(e.body)) if isinstance(error_body, dict) else str(e.body)
+            except (json.JSONDecodeError, AttributeError):
+                error_message = str(e.body) if e.body else str(e)
+            message = {"status": "error", "message": {"code": str(e.status), "message": error_message}}
             return (False, message)
 
     def get_namespaces(self):
@@ -145,6 +150,21 @@ class K8sClient:
             else:
                 raise e
 
+    def delete_namespace(self, namespace_name):
+        """
+        Deleta um namespace do Kubernetes.
+        Quando um namespace é deletado, todos os recursos dentro dele são automaticamente deletados.
+        """
+        v1 = client.CoreV1Api(self.api_client)
+        try:
+            v1.delete_namespace(name=namespace_name, body=client.V1DeleteOptions())
+        except ApiException as e:
+            if e.status == 404:
+                # Namespace já não existe, não é um erro
+                return
+            else:
+                raise e
+
     def apply_or_delete_yaml_to_k8s(self, yaml_documents, operation="create"):
 
         for document in yaml_documents:
@@ -180,9 +200,31 @@ class K8sClient:
                 getattr(api_instance, replace_method)(
                     name=name, namespace=namespace, body=document
                 )
+            elif operation == "upsert":
+                # Tenta atualizar primeiro, se não existir, cria
+                try:
+                    getattr(api_instance, replace_method)(
+                        name=name, namespace=namespace, body=document
+                    )
+                except ApiException as e:
+                    if e.status == 404:
+                        # Recurso não existe, criar
+                        getattr(api_instance, create_method)(
+                            namespace=namespace, body=document
+                        )
+                    else:
+                        raise e
             elif operation == "delete":
-                getattr(api_instance, delete_method)(
-                    name=name, namespace=namespace, body=client.V1DeleteOptions()
-                )
+                try:
+                    getattr(api_instance, delete_method)(
+                        name=name, namespace=namespace, body=client.V1DeleteOptions()
+                    )
+                except ApiException as e:
+                    if e.status == 404:
+                        # Recurso já não existe no Kubernetes, isso é aceitável
+                        # O objetivo é deletar e se já não existe, consideramos sucesso
+                        pass
+                    else:
+                        raise e
 
         return f"Documents applied successfully"

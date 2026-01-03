@@ -1,5 +1,7 @@
 start:
 	@docker compose -f docker/docker-compose.yaml up -d
+	@make load-fixtures
+	@make setup-dev-cluster
 
 api-migrate:
 	@docker compose -f docker/docker-compose.yaml run --rm api sh -c 'alembic revision --autogenerate'
@@ -20,10 +22,19 @@ build:
 	@docker compose -f docker/docker-compose.yaml build
 
 stop:
-	@docker compose -f docker/docker-compose.yaml down -v
+	@docker compose -f docker/docker-compose.yaml down -v --remove-orphans
 
 logs:
 	@docker compose -f docker/docker-compose.yaml logs -f
 
 status:
 	@docker compose -f docker/docker-compose.yaml ps
+
+setup-dev-cluster:
+	@./scripts/setup-k3s-cluster.sh
+
+load-fixtures:
+	@docker compose -f docker/docker-compose.yaml run --rm api sh -c 'python scripts/load_initial_templates.py'
+
+reset-migrations:
+	@docker compose -f docker/docker-compose.yaml run --rm api sh -c 'python scripts/reset_alembic_history.py'

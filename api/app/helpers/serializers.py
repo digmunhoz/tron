@@ -1,24 +1,28 @@
 
-def serialize_webapp_deploy(webapp_deploy):
+def serialize_application_component(application_component):
+    """
+    Serializa um ApplicationComponent para uso nos templates Kubernetes.
+    Inclui informações do componente, instância, aplicação e ambiente.
+    """
     return {
-        "webapp_name": webapp_deploy.webapp.name,
-        "webapp_uuid": webapp_deploy.webapp.uuid,
-        "namespace_name": webapp_deploy.webapp.namespace.name,
-        "namespace_uuid": webapp_deploy.webapp.namespace.uuid,
-        "environment": webapp_deploy.environment.name,
-        "workload": webapp_deploy.workload.name,
-        "image": webapp_deploy.image,
-        "version": webapp_deploy.version,
-        "cpu_scaling_threshold": webapp_deploy.cpu_scaling_threshold,
-        "memory_scaling_threshold": webapp_deploy.memory_scaling_threshold,
-        "envs": [env for env in webapp_deploy.envs],
-        "secrets": [secret for secret in webapp_deploy.secrets],
-        "custom_metrics": webapp_deploy.custom_metrics,
-        "healthcheck": webapp_deploy.healthcheck,
-        "endpoints": webapp_deploy.endpoints,
-        "cpu": webapp_deploy.cpu,
-        "memory": webapp_deploy.memory
+        "component_name": application_component.name,
+        "component_uuid": str(application_component.uuid),
+        "component_type": application_component.type.value if hasattr(application_component.type, 'value') else str(application_component.type),
+        "application_name": application_component.instance.application.name,
+        "application_uuid": str(application_component.instance.application.uuid),
+        "environment": application_component.instance.environment.name,
+        "environment_uuid": str(application_component.instance.environment.uuid),
+        "image": application_component.instance.image,
+        "version": application_component.instance.version,
+        "is_public": application_component.is_public,
+        "url": application_component.url,
+        "enabled": application_component.enabled,
+        "settings": application_component.settings or {}
     }
+
+# Mantido para compatibilidade (deprecated)
+def serialize_webapp_deploy(webapp_deploy):
+    return serialize_application_component(webapp_deploy)
 
 def serialize_settings(settings):
 

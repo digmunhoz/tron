@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 
 import app.models.environment as EnvironmentModel
-import app.models.webapp_deploy as WebappDeployModel
+import app.models.application_components as ApplicationComponentModel
 import app.schemas.environment as EnvironmentSchema
 
 from sqlalchemy.orm import Session
@@ -24,7 +24,9 @@ class EnvironmentService:
             "uuid": db_environment.uuid,
             "name": db_environment.name,
             "clusters": [cluster.name for cluster in db_environment.clusters],
-            "settings": [{"key": settings.key, "value": settings.value, "description": settings.description} for settings in db_environment.settings]
+            "settings": [{"key": settings.key, "value": settings.value, "description": settings.description} for settings in db_environment.settings],
+            "created_at": db_environment.created_at,
+            "updated_at": db_environment.updated_at
         }
 
         return EnvironmentSchema.EnvironmentWithClusters.model_validate(serialized_data)
@@ -39,7 +41,9 @@ class EnvironmentService:
                 "uuid": environment.uuid,
                 "name": environment.name,
                 "clusters": [cluster.name for cluster in environment.clusters],
-                "settings": [{"key": settings.key, "value": settings.value, "description": settings.description} for settings in environment.settings]
+                "settings": [{"key": settings.key, "value": settings.value, "description": settings.description} for settings in environment.settings],
+                "created_at": environment.created_at,
+                "updated_at": environment.updated_at
             }
 
             environment_response = EnvironmentSchema.EnvironmentWithClusters.model_validate(environment_data)
@@ -58,8 +62,8 @@ class EnvironmentService:
             raise HTTPException(status_code=404, detail="Environment not found")
 
         associated_webapp_deploys = (
-            db.query(WebappDeployModel.WebappDeploy)
-            .filter(WebappDeployModel.WebappDeploy.environment_id == db_environment.id)
+            db.query(ApplicationComponentModel.ApplicationComponent)
+            .filter(ApplicationComponentModel.ApplicationComponent.environment_id == db_environment.id)
             .all()
         )
         if associated_webapp_deploys:

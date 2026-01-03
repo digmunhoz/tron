@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from app.services.kubernetes.webapp_instance_manager import (
-    KubernetesWebAppInstanceManager,
+from app.services.kubernetes.application_component_manager import (
+    KubernetesApplicationComponentManager,
 )
 
 
@@ -42,9 +42,18 @@ def test_instance_management():
         "memory": 128
     }
 
-    kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(
-        webapp_deploy_serialized
-    )
+    # Mock database session
+    mock_db = MagicMock()
+
+    # Mock templates
+    mock_template = MagicMock()
+    mock_template.content = "kind: Deployment\napiVersion: apps/v1\nmetadata:\n  name: test"
+    mock_template.name = "test-template"
+
+    with patch('app.services.component_template_config.ComponentTemplateConfigService.get_templates_for_component', return_value=[mock_template]):
+        kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
+            webapp_deploy_serialized, "webapp", db=mock_db
+        )
 
     kinds = []
     api_versions = []

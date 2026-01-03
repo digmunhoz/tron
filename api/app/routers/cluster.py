@@ -8,7 +8,7 @@ from uuid import UUID
 router = APIRouter()
 
 
-@router.post("/clusters", response_model=schemas.ClusterResponse)
+@router.post("/clusters/", response_model=schemas.ClusterResponse)
 def create_cluster(
     cluster: schemas.ClusterCreate,
     uuid: UUID = None,

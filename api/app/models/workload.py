@@ -13,7 +13,6 @@ class Workload(Base):
     uuid = Column(UUID(as_uuid=True), default=uuid4, unique=True, nullable=False)
     name = Column(String, unique=True, index=True)
 
-    webapp_deploys = relationship("WebappDeploy", back_populates="workload")
 
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), server_onupdate=func.now(), nullable=False)

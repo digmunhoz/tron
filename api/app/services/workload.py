@@ -2,7 +2,7 @@ from fastapi import HTTPException
 
 import app.models.workload as WorkloadModel
 import app.models.webapp as WebappModel
-import app.models.webapp_deploy as WebappDeployModel
+import app.models.application_components as ApplicationComponentModel
 import app.schemas.workload as WorkloadSchema
 
 from sqlalchemy.orm import Session
@@ -49,7 +49,7 @@ class WorkloadService:
         if db_workload is None:
             raise HTTPException(status_code=404, detail="Workload not found")
 
-        associated_deploys = db.query(WebappDeployModel.WebappDeploy).filter(WebappDeployModel.WebappDeploy.workload_id == db_workload.id).all()
+        associated_deploys = db.query(ApplicationComponentModel.ApplicationComponent).filter(ApplicationComponentModel.ApplicationComponent.workload_id == db_workload.id).all()
         if associated_deploys:
             raise HTTPException(status_code=400, detail="Cannot delete workload with associated deploys")
 

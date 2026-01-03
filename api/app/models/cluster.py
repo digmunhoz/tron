@@ -17,7 +17,7 @@ class Cluster(Base):
     environment_id = Column(Integer, ForeignKey("environments.id"), nullable=False)
     environment = relationship("Environment", back_populates="clusters")
 
-    instances = relationship("Instance", back_populates="cluster")
+    instances = relationship("ClusterInstance", back_populates="cluster")
 
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), server_onupdate=func.now(), nullable=False)

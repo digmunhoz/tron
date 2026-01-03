@@ -1,16 +1,16 @@
 from fastapi import HTTPException
 
-import app.models.webapp_instance as InstanceModel
-import app.models.webapp_deploy as WebappDeployModel
+import app.models.cluster_instance as InstanceModel
+import app.models.application_components as ApplicationComponentModel
 import app.models.cluster as ClusterModel
 import app.models.environment as EnvironmentModel
 import app.models.settings as SettingsModel
 import app.schemas.instance as InstanceSchema
 
-from app.helpers.serializers import serialize_webapp_deploy, serialize_settings
+from app.helpers.serializers import serialize_application_component, serialize_settings
 from app.k8s.client import K8sClient
-from app.services.kubernetes.webapp_instance_manager import (
-    KubernetesWebAppInstanceManager,
+from app.services.kubernetes.application_component_manager import (
+    KubernetesApplicationComponentManager,
 )
 
 from sqlalchemy.orm import Session
@@ -21,8 +21,8 @@ from uuid import UUID
 class InstanceService:
     def get_instance(db: Session, instance_uuid: int):
         db_instance = (
-            db.query(InstanceModel.Instance)
-            .filter(InstanceModel.Instance.uuid == instance_uuid)
+            db.query(InstanceModel.ClusterInstance)
+            .filter(InstanceModel.ClusterInstance.uuid == instance_uuid)
             .first()
         )
 
@@ -32,24 +32,24 @@ class InstanceService:
         return InstanceSchema.Instance.model_validate(db_instance)
 
     def get_instances(db: Session, skip: int = 0, limit: int = 100):
-        db_instances = db.query(InstanceModel.Instance).offset(skip).limit(limit).all()
+        db_instances = db.query(InstanceModel.ClusterInstance).offset(skip).limit(limit).all()
 
         return db_instances
 
     def delete_instance(db: Session, instance_uuid: UUID):
 
         db_instance = (
-            db.query(InstanceModel.Instance)
-            .filter(InstanceModel.Instance.uuid == instance_uuid)
+            db.query(InstanceModel.ClusterInstance)
+            .filter(InstanceModel.ClusterInstance.uuid == instance_uuid)
             .first()
         )
         if db_instance is None:
             raise HTTPException(status_code=404, detail="Instance not found")
 
-        webapp_deploy = (
-            db.query(WebappDeployModel.WebappDeploy)
+        application_component = (
+            db.query(ApplicationComponentModel.ApplicationComponent)
             .filter(
-                WebappDeployModel.WebappDeploy.uuid == db_instance.webapp_deploy.uuid
+                ApplicationComponentModel.ApplicationComponent.uuid == db_instance.application_component.uuid
             )
             .first()
         )
@@ -62,10 +62,11 @@ class InstanceService:
 
         try:
 
-            webapp_deploy_serialized = serialize_webapp_deploy(webapp_deploy)
+            application_component_serialized = serialize_application_component(application_component)
+            component_type = application_component.type.value if hasattr(application_component.type, 'value') else str(application_component.type)
 
-            kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(
-                webapp_deploy_serialized
+            kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
+                application_component_serialized, component_type, db=db
             )
 
             k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
@@ -94,41 +95,42 @@ class InstanceService:
             .first()
         )
 
-        webapp_deploy = (
-            db.query(WebappDeployModel.WebappDeploy)
-            .filter(WebappDeployModel.WebappDeploy.uuid == instance.webapp_deploy_uuid)
+        application_component = (
+            db.query(ApplicationComponentModel.ApplicationComponent)
+            .filter(ApplicationComponentModel.ApplicationComponent.uuid == instance.application_component_uuid)
             .first()
         )
 
         settings = (
             db.query(SettingsModel.Settings)
-            .filter(SettingsModel.Settings.environment_id == webapp_deploy.environment_id)
+            .filter(SettingsModel.Settings.environment_id == application_component.instance.environment_id)
             .all()
         )
 
-        if cluster.environment.uuid != webapp_deploy.environment.uuid:
+        if cluster.environment.uuid != application_component.instance.environment.uuid:
             raise HTTPException(
                 status_code=400, detail="Cluster is not associated with the environment"
             )
 
         if instance_uuid:
             db_instance = (
-                db.query(InstanceModel.Instance)
-                .filter(InstanceModel.Instance.uuid == instance_uuid)
+                db.query(InstanceModel.ClusterInstance)
+                .filter(InstanceModel.ClusterInstance.uuid == instance_uuid)
                 .first()
             )
             if db_instance:
                 db_instance.cluster_id = cluster.id
-                db_instance.webapp_deploy_id = webapp_deploy.id
+                db_instance.application_component_id = application_component.id
                 try:
 
-                    webapp_deploy_serialized = serialize_webapp_deploy(webapp_deploy)
+                    application_component_serialized = serialize_application_component(application_component)
+                    component_type = application_component.type.value if hasattr(application_component.type, 'value') else str(application_component.type)
                     settings_serialized = serialize_settings(settings)
 
                     k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
                     kubernetes_payload = (
-                        KubernetesWebAppInstanceManager.instance_management(
-                            webapp_deploy_serialized, settings_serialized
+                        KubernetesApplicationComponentManager.instance_management(
+                            application_component_serialized, component_type, settings_serialized, db=db
                         )
                     )
                     k8s_client.apply_or_delete_yaml_to_k8s(
@@ -143,19 +145,20 @@ class InstanceService:
                     raise HTTPException(status_code=400, detail=message)
                 return db_instance
 
-        new_instance = InstanceModel.Instance(
-            uuid=uuid4(), cluster_id=cluster.id, webapp_deploy_id=webapp_deploy.id
+        new_instance = InstanceModel.ClusterInstance(
+            uuid=uuid4(), cluster_id=cluster.id, application_component_id=application_component.id
         )
         db.add(new_instance)
 
         try:
 
-            webapp_deploy_serialized = serialize_webapp_deploy(webapp_deploy)
+            application_component_serialized = serialize_application_component(application_component)
+            component_type = application_component.type.value if hasattr(application_component.type, 'value') else str(application_component.type)
             settings_serialized = serialize_settings(settings)
 
             k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
-            kubernetes_payload = KubernetesWebAppInstanceManager.instance_management(
-                webapp_deploy_serialized, settings_serialized
+            kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
+                application_component_serialized, component_type, settings_serialized, db=db
             )
             k8s_client.apply_or_delete_yaml_to_k8s(
                 kubernetes_payload, operation="create"

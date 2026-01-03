@@ -1,21 +1,19 @@
-FROM        python:3.13-slim
+FROM node:20-alpine
 
-ARG         DIR=/app
+WORKDIR /app
 
-ARG         VERSION
-ENV         VERSION=${VERSION}
-WORKDIR     $DIR
+# Copy package files
+COPY package.json ./
 
-RUN         apt update && apt-get install -y make gcc libffi-dev libpq-dev libldap2-dev libsasl2-dev
-RUN         pip install --upgrade pip
-RUN         pip install --no-cache-dir poetry
+# Install dependencies
+RUN npm install
 
-COPY        requirements.txt /tmp/
+# Copy source code
+COPY . .
 
-RUN         pip install --upgrade pip \
-                && pip install -r /tmp/requirements.txt
+# Expose port
+EXPOSE 3000
 
-ADD         . $DIR/
-EXPOSE      80
+# Start dev server
+CMD ["npm", "run", "dev"]
 
-CMD         ["python", "manage.py", "runserver", "--insecure", "0.0.0.0:80"]

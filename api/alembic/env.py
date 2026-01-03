@@ -6,14 +6,15 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.database import Base
-import app.models.webapp
-import app.models.namespace
-import app.models.workload
 import app.models.cluster
-import app.models.webapp_deploy
 import app.models.environment
-import app.models.webapp_instance
+import app.models.cluster_instance
+import app.models.instance
 import app.models.settings
+import app.models.template
+import app.models.component_template_config
+import app.models.application
+import app.models.application_components
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

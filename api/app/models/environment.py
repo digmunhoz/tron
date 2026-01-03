@@ -17,5 +17,5 @@ class Environment(Base):
     updated_at = Column(DateTime, server_default=func.now(), server_onupdate=func.now(), nullable=False)
 
     settings = relationship("Settings", back_populates="environment")
-    webapp_deploys = relationship("WebappDeploy", back_populates="environment")
     clusters = relationship("Cluster", back_populates="environment")
+    instances = relationship("Instance", back_populates="environment")

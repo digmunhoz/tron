@@ -1,8 +1,20 @@
 import importlib
 import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from .routers import *
 from .database import Base, engine
+
+# Import all models to ensure they are registered with SQLAlchemy
+import app.models.cluster
+import app.models.environment
+import app.models.cluster_instance
+import app.models.instance
+import app.models.settings
+import app.models.template
+import app.models.component_template_config
+import app.models.application
+import app.models.application_components
 
 Base.metadata.create_all(bind=engine)
 
@@ -10,6 +22,28 @@ app = FastAPI(
     title="Tron",
     summary="Platform as a Service built on top of kubernetes",
     version="1.0.0",
+)
+
+# CORS Configuration
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:80").split(",")
+CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS if origin.strip()]
+
+CORS_ALLOW_CREDENTIALS = os.getenv("CORS_ALLOW_CREDENTIALS", "true").lower() == "true"
+CORS_ALLOW_METHODS = os.getenv("CORS_ALLOW_METHODS", "GET,POST,PUT,DELETE,OPTIONS").split(",")
+CORS_ALLOW_METHODS = [method.strip() for method in CORS_ALLOW_METHODS if method.strip()]
+
+CORS_ALLOW_HEADERS = os.getenv(
+    "CORS_ALLOW_HEADERS",
+    "Content-Type,Authorization,Accept,Origin,X-Requested-With"
+).split(",")
+CORS_ALLOW_HEADERS = [header.strip() for header in CORS_ALLOW_HEADERS if header.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=CORS_ALLOW_CREDENTIALS,
+    allow_methods=CORS_ALLOW_METHODS,
+    allow_headers=CORS_ALLOW_HEADERS,
 )
 
 ROUTERS_PATH = "./app/routers"

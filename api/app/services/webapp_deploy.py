@@ -2,150 +2,80 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from uuid import uuid4
 from uuid import UUID
-from app.k8s.client import K8sClient
-from app.helpers.serializers import serialize_webapp_deploy, serialize_settings
-from app.services.kubernetes.webapp_instance_manager import (
-    KubernetesWebAppInstanceManager,
-)
 
-import app.models.webapp as WebappModel
-import app.models.environment as EnvironmentModel
-import app.models.webapp_deploy as WebappDeployModel
-import app.models.settings as SettingsModel
-import app.models.cluster as ClusterModel
-import app.models.workload as WorkloadModel
-import app.models.webapp_instance as InstanceModel
-import app.schemas.webapp_deploy as WebappDeploySchema
+import app.models.application_components as ApplicationComponentModel
+import app.models.instance as InstanceModel
+import app.schemas.application_components as ApplicationComponentSchema
 
 
-class WebappDeployService:
+class ApplicationComponentService:
     def upsert_webapp(
         db: Session,
-        webapp_deploy: WebappDeploySchema.WebappDeployCreate,
+        webapp_deploy: ApplicationComponentSchema.ApplicationComponentCreate,
         uuid: UUID = None,
     ):
+        # Validate that webapp type requires url
+        if webapp_deploy.type == ApplicationComponentSchema.WebappType.webapp and not webapp_deploy.url:
+            raise HTTPException(
+                status_code=400,
+                detail="URL is required when type is 'webapp'"
+            )
+
+        # Get instance by uuid
+        instance = (
+            db.query(InstanceModel.Instance)
+            .filter(InstanceModel.Instance.uuid == webapp_deploy.instance_uuid)
+            .first()
+        )
+        if instance is None:
+            raise HTTPException(status_code=404, detail="Instance not found")
 
         if uuid:
 
             db_webapp_deploy = (
-                db.query(WebappDeployModel.WebappDeploy)
-                .filter(WebappDeployModel.WebappDeploy.uuid == uuid)
+                db.query(ApplicationComponentModel.ApplicationComponent)
+                .filter(ApplicationComponentModel.ApplicationComponent.uuid == uuid)
                 .first()
             )
 
             if db_webapp_deploy is None:
                 raise HTTPException(status_code=404, detail="Webapp Deploy not found")
 
-            workload = (
-                db.query(WorkloadModel.Workload)
-                .filter(WorkloadModel.Workload.uuid == webapp_deploy.workload_uuid)
-                .first()
-            )
+            if webapp_deploy.name is not None:
+                db_webapp_deploy.name = webapp_deploy.name
+            if webapp_deploy.type is not None:
+                db_webapp_deploy.type = webapp_deploy.type
+            if webapp_deploy.settings is not None:
+                db_webapp_deploy.settings = webapp_deploy.settings
+            if webapp_deploy.is_public is not None:
+                db_webapp_deploy.is_public = webapp_deploy.is_public
+            if webapp_deploy.url is not None:
+                db_webapp_deploy.url = webapp_deploy.url
+            if webapp_deploy.enabled is not None:
+                db_webapp_deploy.enabled = webapp_deploy.enabled
 
-            settings = (
-                db.query(SettingsModel.Settings)
-                .filter(SettingsModel.Settings.environment_id == db_webapp_deploy.environment_id)
-                .all()
-            )
+            # Validate that webapp type requires url (check final state after all updates)
+            final_type = db_webapp_deploy.type
+            final_url = db_webapp_deploy.url
+            if final_type == ApplicationComponentSchema.WebappType.webapp and not final_url:
+                raise HTTPException(
+                    status_code=400,
+                    detail="URL is required when type is 'webapp'"
+                )
 
-            db_webapp_deploy.workload_id = workload.id
-            db_webapp_deploy.image = webapp_deploy.image
-            db_webapp_deploy.version = webapp_deploy.version
-            db_webapp_deploy.custom_metrics = webapp_deploy.custom_metrics.model_dump()
-            db_webapp_deploy.endpoints = [
-                endpoint.model_dump() for endpoint in webapp_deploy.endpoints
-            ]
-            db_webapp_deploy.envs = [env.model_dump() for env in webapp_deploy.envs]
-            db_webapp_deploy.secrets = [
-                secret.model_dump() for secret in webapp_deploy.secrets
-            ]
-            db_webapp_deploy.cpu_scaling_threshold = webapp_deploy.cpu_scaling_threshold
-            db_webapp_deploy.memory_scaling_threshold = (
-                webapp_deploy.memory_scaling_threshold
-            )
-            db_webapp_deploy.healthcheck = webapp_deploy.healthcheck.model_dump()
-            db_webapp_deploy.cpu = webapp_deploy.cpu
-            db_webapp_deploy.memory = webapp_deploy.memory
-
-            instances = (
-                db.query(InstanceModel.Instance)
-                .filter(InstanceModel.Instance.webapp_deploy_id == db_webapp_deploy.id)
-                .all()
-            )
-
-            try:
-                for instance in instances:
-
-                    cluster = (
-                        db.query(ClusterModel.Cluster)
-                        .filter(ClusterModel.Cluster.id == instance.cluster_id)
-                        .first()
-                    )
-
-                    webapp_deploy_serialized = serialize_webapp_deploy(db_webapp_deploy)
-                    settings_serialized = serialize_settings(settings)
-
-                    k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
-                    kubernetes_payload = (
-                        KubernetesWebAppInstanceManager.instance_management(
-                            webapp_deploy_serialized, settings_serialized
-                        )
-                    )
-                    k8s_client.apply_or_delete_yaml_to_k8s(
-                        kubernetes_payload, operation="update"
-                    )
-
-                db.commit()
-                db.refresh(db_webapp_deploy)
-
-            except Exception as e:
-                db.rollback()
-                message = {"status": "error", "message": f"{e}"}
-                raise HTTPException(status_code=400, detail=message)
+            db.commit()
+            db.refresh(db_webapp_deploy)
 
         else:
-
-            workload = (
-                db.query(WorkloadModel.Workload)
-                .filter(WorkloadModel.Workload.uuid == webapp_deploy.workload_uuid)
-                .first()
-            )
-
-            if not workload:
-                raise HTTPException(status_code=404, detail="Workload not found")
-
-            webapp = (
-                db.query(WebappModel.Webapp)
-                .filter(WebappModel.Webapp.uuid == webapp_deploy.webapp_uuid)
-                .first()
-            )
-
-            environment = (
-                db.query(EnvironmentModel.Environment)
-                .filter(
-                    EnvironmentModel.Environment.uuid == webapp_deploy.environment_uuid
-                )
-                .first()
-            )
-
-            db_webapp_deploy = WebappDeployModel.WebappDeploy(
+            db_webapp_deploy = ApplicationComponentModel.ApplicationComponent(
                 uuid=uuid4(),
-                image=webapp_deploy.image,
-                version=webapp_deploy.version,
-                webapp_id=webapp.id,
-                workload_id=workload.id,
-                environment_id=environment.id,
-                custom_metrics=webapp_deploy.custom_metrics.model_dump(),
-                endpoints=[
-                    endpoint.model_dump() for endpoint in webapp_deploy.endpoints
-                ],
-                envs=[env.model_dump() for env in webapp_deploy.envs],
-                secrets=[secret.model_dump() for secret in webapp_deploy.secrets],
-                cpu_scaling_threshold=webapp_deploy.cpu_scaling_threshold,
-                memory_scaling_threshold=webapp_deploy.memory_scaling_threshold,
-                healthcheck=webapp_deploy.healthcheck.model_dump(),
-                cpu=webapp_deploy.cpu,
-                memory=webapp_deploy.memory,
+                instance_id=instance.id,
+                name=webapp_deploy.name,
+                type=webapp_deploy.type,
+                settings=webapp_deploy.settings,
+                is_public=webapp_deploy.is_public,
+                url=webapp_deploy.url,
+                enabled=webapp_deploy.enabled,
             )
             db.add(db_webapp_deploy)
 
@@ -161,27 +91,27 @@ class WebappDeployService:
 
     def get_webapp_deploy(
         db: Session, uuid: int
-    ) -> WebappDeploySchema.WebappDeployCompletedResponse:
+    ) -> ApplicationComponentSchema.ApplicationComponentCompletedResponse:
         db_webapp_deploy = (
-            db.query(WebappDeployModel.WebappDeploy)
-            .filter(WebappDeployModel.WebappDeploy.uuid == uuid)
+            db.query(ApplicationComponentModel.ApplicationComponent)
+            .filter(ApplicationComponentModel.ApplicationComponent.uuid == uuid)
             .first()
         )
         if db_webapp_deploy is None:
             raise HTTPException(status_code=404, detail="Webapp Deploy not found")
-        return WebappDeploySchema.WebappDeployCompletedResponse.model_validate(
+        return ApplicationComponentSchema.ApplicationComponentCompletedResponse.model_validate(
             db_webapp_deploy
         )
 
     def get_webapp_deploys(
         db: Session, skip: int = 0, limit: int = 100
-    ) -> WebappDeploySchema.WebappDeployReducedResponse:
-        return db.query(WebappDeployModel.WebappDeploy).offset(skip).limit(limit).all()
+    ) -> ApplicationComponentSchema.ApplicationComponentReducedResponse:
+        return db.query(ApplicationComponentModel.ApplicationComponent).offset(skip).limit(limit).all()
 
     def delete_webapp_deploy(db: Session, uuid: UUID):
         db_webapp_deploy = (
-            db.query(WebappDeployModel.WebappDeploy)
-            .filter(WebappDeployModel.WebappDeploy.uuid == uuid)
+            db.query(ApplicationComponentModel.ApplicationComponent)
+            .filter(ApplicationComponentModel.ApplicationComponent.uuid == uuid)
             .first()
         )
         if db_webapp_deploy is None:

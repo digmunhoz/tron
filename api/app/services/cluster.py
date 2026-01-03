@@ -21,9 +21,17 @@ class ClusterService:
         try:
             success, connection_message = k8s_client.validate_connection()
             if not success:
-                raise HTTPException(status_code=400, detail=connection_message)
+                # connection_message é um dict com status e message
+                error_message = connection_message.get("message", {})
+                if isinstance(error_message, dict):
+                    error_text = error_message.get("message", json.dumps(error_message))
+                else:
+                    error_text = str(error_message)
+                raise HTTPException(status_code=400, detail=error_text)
+        except HTTPException:
+            raise
         except Exception as e:
-            error_message = str(e) if not 'connection_message' in locals() else connection_message
+            error_message = str(e)
             raise HTTPException(status_code=400, detail=f"Connection validation failed: {error_message}")
 
         if cluster_uuid:
@@ -39,8 +47,8 @@ class ClusterService:
                 try:
                     db.commit()
                 except Exception as e:
-                    message = {"status": "error", "message": f"{e._message}"}
-                    raise HTTPException(status_code=400, detail=message)
+                    error_msg = str(e) if hasattr(e, '__str__') else f"{e}"
+                    raise HTTPException(status_code=400, detail=error_msg)
                 db.refresh(db_cluster)
                 return db_cluster
 
@@ -66,8 +74,8 @@ class ClusterService:
         try:
             db.commit()
         except Exception as e:
-            message = {"status": "error", "message": f"{e._message}"}
-            raise HTTPException(status_code=400, detail=message)
+            error_msg = str(e) if hasattr(e, '__str__') else f"{e}"
+            raise HTTPException(status_code=400, detail=error_msg)
 
         db.refresh(new_cluster)
 
