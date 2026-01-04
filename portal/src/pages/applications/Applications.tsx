@@ -5,6 +5,7 @@ import { applicationsApi, instancesApi } from '../../services/api'
 import type { Application, Instance } from '../../types'
 import DataTable from '../../components/DataTable'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
+import { PageHeader } from '../../components/PageHeader'
 
 function Applications() {
   const navigate = useNavigate()
@@ -70,10 +71,7 @@ function Applications() {
       />
 
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient">Applications</h1>
-          <p className="text-neutral-600 mt-1">Manage applications</p>
-        </div>
+        <PageHeader title="Applications" description="Manage applications" />
         <button
           onClick={() => navigate('/applications/new')}
           className="btn-primary flex items-center gap-2"

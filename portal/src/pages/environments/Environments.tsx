@@ -5,6 +5,7 @@ import { environmentsApi } from '../../services/api'
 import type { Environment, EnvironmentCreate } from '../../types'
 import DataTable from '../../components/DataTable'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
+import { PageHeader } from '../../components/PageHeader'
 
 function Environments() {
   const [isOpen, setIsOpen] = useState(false)
@@ -80,10 +81,7 @@ function Environments() {
       />
 
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient">Environments</h1>
-          <p className="text-neutral-600 mt-1">Manage environments</p>
-        </div>
+        <PageHeader title="Environments" description="Manage environments" />
         <button
           onClick={() => {
             setFormData({ name: '' })

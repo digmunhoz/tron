@@ -5,6 +5,7 @@ import { tokensApi } from '../../services/api'
 import type { ApiToken, ApiTokenCreate, ApiTokenUpdate } from '../../types'
 import DataTable from '../../components/DataTable'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
+import { PageHeader } from '../../components/PageHeader'
 
 function Tokens() {
   const [isOpen, setIsOpen] = useState(false)
@@ -177,10 +178,7 @@ function Tokens() {
       />
 
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient">Tokens</h1>
-          <p className="text-neutral-600 mt-1">Manage API tokens for authentication</p>
-        </div>
+        <PageHeader title="Tokens" description="Manage API tokens for authentication" />
         <button onClick={handleOpenCreate} className="btn-primary flex items-center gap-2">
           <Plus size={18} />
           <span>New Token</span>

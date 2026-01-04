@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trash2, FileText, X, Terminal } from 'lucide-react'
 import { applicationComponentsApi, instancesApi, applicationsApi } from '../../services/api'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
+import { PageHeader } from '../../components/PageHeader'
 import DataTable from '../../components/DataTable'
 import type { Pod, PodCommandResponse } from '../../types'
 
@@ -187,10 +188,10 @@ function WebappDetail() {
       />
 
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient">{component?.name || 'Webapp Details'}</h1>
-          <p className="text-neutral-600 mt-1">Pods running in Kubernetes</p>
-        </div>
+        <PageHeader
+          title={component?.name || 'Webapp Details'}
+          description="Pods running in Kubernetes"
+        />
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-neutral-700">
             <span>Refresh:</span>

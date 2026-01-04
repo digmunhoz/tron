@@ -5,6 +5,7 @@ import { usersApi } from '../../services/api'
 import type { User, UserCreate } from '../../types'
 import DataTable from '../../components/DataTable'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
+import { PageHeader } from '../../components/PageHeader'
 import { useAuth } from '../../contexts/AuthContext'
 
 function Users() {
@@ -210,10 +211,7 @@ function Users() {
       />
 
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient">Users</h1>
-          <p className="text-neutral-600 mt-1">Manage platform users</p>
-        </div>
+        <PageHeader title="Users" description="Manage platform users" />
         <button onClick={handleOpenCreate} className="btn-primary flex items-center gap-2">
           <Plus size={18} />
           <span>New User</span>

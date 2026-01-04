@@ -5,6 +5,7 @@ import { clustersApi, environmentsApi } from '../../services/api'
 import type { Cluster, ClusterCreate } from '../../types'
 import DataTable from '../../components/DataTable'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
+import { PageHeader } from '../../components/PageHeader'
 
 function Clusters() {
   const [isOpen, setIsOpen] = useState(false)
@@ -174,10 +175,7 @@ function Clusters() {
       />
 
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient">Clusters</h1>
-          <p className="text-neutral-600 mt-1">Manage Kubernetes clusters</p>
-        </div>
+        <PageHeader title="Clusters" description="Manage Kubernetes clusters" />
         <button
           onClick={() => {
             setEditingCluster(null)

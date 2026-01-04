@@ -6,6 +6,7 @@ import { applicationComponentsApi, instancesApi, applicationsApi, cronsApi, work
 import type { ApplicationComponentCreate, InstanceComponent } from '../../types'
 import { ComponentForm, type ComponentFormData, getDefaultWebappSettings, getDefaultCronSettings, getDefaultWorkerSettings } from '../../components/applications'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
+import { PageHeader } from '../../components/PageHeader'
 import DataTable from '../../components/DataTable'
 
 function InstanceDetail() {
@@ -247,7 +248,6 @@ function InstanceDetail() {
       render: (component: InstanceComponent) => (
         <div>
           <div className="text-sm font-medium text-slate-800">{component.name}</div>
-          <small className="text-xs text-slate-500">{component.uuid}</small>
         </div>
       ),
     },
@@ -505,12 +505,10 @@ function InstanceDetail() {
       />
 
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient">Components</h1>
-          <p className="text-neutral-600 mt-1">
-            {application?.name || 'Application'} • {instance.environment.name} • {instance.image}:{instance.version}
-          </p>
-        </div>
+        <PageHeader
+          title="Components"
+          description={`${application?.name || 'Application'} • ${instance.environment.name} • ${instance.image}:${instance.version}`}
+        />
         <div className="flex items-center gap-3">
           <button
             onClick={openEditInstanceModal}

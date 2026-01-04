@@ -13,6 +13,7 @@ import {
   getDefaultCronSettings,
 } from '../../components/applications'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
+import { PageHeader } from '../../components/PageHeader'
 
 function CreateInstance() {
   const { uuid: applicationUuid } = useParams<{ uuid: string }>()
@@ -178,10 +179,10 @@ function CreateInstance() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Create New Instance</h1>
-          <p className="text-slate-600">
-            Create a new instance for <strong>{application.name}</strong> with components
-          </p>
+          <PageHeader
+            title="Create New Instance"
+            description={`Create a new instance for ${application.name} with components`}
+          />
         </div>
 
         {/* Notification */}

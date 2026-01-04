@@ -8,9 +8,11 @@ import type {
   TemplateUpdate,
   ComponentTemplateConfig,
   ComponentTemplateConfigCreate,
+  ComponentTemplateConfigUpdate,
 } from '../../types'
 import DataTable from '../../components/DataTable'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
+import { PageHeader } from '../../components/PageHeader'
 
 // Variáveis disponíveis para templates webapp
 const WEBAPP_VARIABLES = {
@@ -332,10 +334,7 @@ function Templates() {
       />
 
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient">Templates</h1>
-          <p className="text-neutral-600 mt-1">Manage Jinja2 templates</p>
-        </div>
+        <PageHeader title="Templates" description="Manage Jinja2 templates" />
         <div className="flex items-center gap-2">
           {activeTab === 'templates' && (
             <button

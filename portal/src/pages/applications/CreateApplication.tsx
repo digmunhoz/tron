@@ -15,6 +15,7 @@ import {
   getDefaultWorkerSettings,
 } from '../../components/applications'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
+import { PageHeader } from '../../components/PageHeader'
 
 function CreateApplication() {
   const navigate = useNavigate()
@@ -235,8 +236,7 @@ function CreateApplication() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Create New Application</h1>
-          <p className="text-slate-600">Create a new application with instance and components in one step</p>
+          <PageHeader title="Create New Application" description="Create a new application with instance and components in one step" />
         </div>
 
         {/* Notification */}

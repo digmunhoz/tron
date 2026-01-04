@@ -39,6 +39,7 @@ import type {
   PodLogs,
   PodCommandRequest,
   PodCommandResponse,
+  DashboardOverview,
 } from '../types'
 
 const api = axios.create({
@@ -493,6 +494,14 @@ export const tokensApi = {
   },
   delete: async (uuid: string): Promise<void> => {
     await api.delete(`/tokens/${uuid}`)
+  },
+}
+
+// Dashboard
+export const dashboardApi = {
+  getOverview: async (): Promise<DashboardOverview> => {
+    const response = await api.get<DashboardOverview>('/dashboard/')
+    return response.data
   },
 }
 

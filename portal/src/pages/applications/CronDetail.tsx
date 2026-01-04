@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { FileText, X, Clock } from 'lucide-react'
 import { cronsApi, instancesApi, applicationsApi } from '../../services/api'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
+import { PageHeader } from '../../components/PageHeader'
 import DataTable from '../../components/DataTable'
 import type { CronJob } from '../../types'
 
@@ -135,12 +136,10 @@ function CronDetail() {
       />
 
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient">{component?.name || 'Cron Details'}</h1>
-          <p className="text-neutral-600 mt-1">
-            Schedule: <span className="font-mono text-sm">{schedule}</span>
-          </p>
-        </div>
+        <PageHeader
+          title={component?.name || 'Cron Details'}
+          description={`Schedule: ${schedule === '-' ? '-' : schedule}`}
+        />
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-neutral-700">
             <span>Refresh:</span>
