@@ -187,10 +187,10 @@ function Layout() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-sm text-neutral-600">
               <div className="w-4 h-4 bg-gradient-primary rounded"></div>
-              <span>© {new Date().getFullYear()} Tron Platform. Todos os direitos reservados.</span>
+              <span>© {new Date().getFullYear()} Tron Platform. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-4 text-sm text-neutral-500">
-              <span>Versão 1.0.0</span>
+              <span>Version 1.0.0</span>
               <span className="hidden md:inline">•</span>
               <span>Platform as a Service</span>
             </div>
