@@ -132,7 +132,7 @@ function DataTable<T>({
   }
 
   return (
-    <div className="glass-effect rounded-xl shadow-soft overflow-hidden">
+    <div className="glass-effect rounded-xl shadow-soft overflow-hidden w-full">
       {searchable && (
         <div className="px-6 py-4 border-b border-neutral-200/60 bg-gradient-subtle">
           <div className="relative">
@@ -158,7 +158,7 @@ function DataTable<T>({
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto w-full">
         <table className="min-w-full divide-y divide-neutral-200">
           <thead className="bg-gradient-subtle">
             <tr>

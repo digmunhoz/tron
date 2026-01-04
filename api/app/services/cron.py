@@ -469,6 +469,56 @@ class CronService:
             )
 
     @staticmethod
+    def delete_cron_job(db: Session, uuid: UUID, job_name: str):
+        """
+        Deleta um Job específico criado por um CronJob no Kubernetes.
+        """
+        # Buscar o componente com relacionamentos
+        db_cron = (
+            db.query(ApplicationComponentModel.ApplicationComponent)
+            .options(
+                joinedload(ApplicationComponentModel.ApplicationComponent.instance)
+                .joinedload(InstanceModel.Instance.application),
+                joinedload(ApplicationComponentModel.ApplicationComponent.instances)
+                .joinedload(ClusterInstanceModel.ClusterInstance.cluster)
+            )
+            .filter(ApplicationComponentModel.ApplicationComponent.uuid == uuid)
+            .first()
+        )
+
+        if db_cron is None:
+            raise HTTPException(status_code=404, detail="Cron not found")
+        if db_cron.type != ApplicationComponentModel.WebappType.cron:
+            raise HTTPException(
+                status_code=400,
+                detail="Component is not a cron"
+            )
+
+        # Buscar cluster_instance relacionado
+        cluster_instance = (
+            db.query(ClusterInstanceModel.ClusterInstance)
+            .filter(ClusterInstanceModel.ClusterInstance.application_component_id == db_cron.id)
+            .first()
+        )
+
+        if not cluster_instance:
+            raise HTTPException(
+                status_code=404,
+                detail="Cron is not deployed to any cluster"
+            )
+
+        cluster = cluster_instance.cluster
+        application_name = db_cron.instance.application.name
+
+        # Criar cliente Kubernetes
+        k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+
+        # Deletar o job
+        k8s_client.delete_job(namespace=application_name, job_name=job_name)
+
+        return {"detail": f"Job '{job_name}' deleted successfully"}
+
+    @staticmethod
     def delete_cron(db: Session, uuid: UUID):
         # Buscar o componente com relacionamentos
         db_cron = (

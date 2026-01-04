@@ -87,10 +87,35 @@ class Instance(InstanceBase):
                 for component in data.components:
                     if hasattr(component, 'created_at') and isinstance(component.created_at, datetime):
                         component.created_at = component.created_at.isoformat()
-                    if hasattr(component, 'updated_at') and isinstance(component.updated_at, datetime):
-                        component.updated_at = component.updated_at.isoformat()
+            if hasattr(component, 'updated_at') and isinstance(component.updated_at, datetime):
+                component.updated_at = component.updated_at.isoformat()
         return data
 
     model_config = ConfigDict(
         from_attributes=True,
     )
+
+
+class KubernetesEventInvolvedObject(BaseModel):
+    kind: str | None = None
+    name: str | None = None
+    namespace: str | None = None
+
+
+class KubernetesEventSource(BaseModel):
+    component: str | None = None
+    host: str | None = None
+
+
+class KubernetesEvent(BaseModel):
+    name: str
+    namespace: str
+    type: str  # Normal, Warning
+    reason: str
+    message: str
+    involved_object: KubernetesEventInvolvedObject
+    source: KubernetesEventSource
+    first_timestamp: str | None = None
+    last_timestamp: str | None = None
+    count: int
+    age_seconds: int

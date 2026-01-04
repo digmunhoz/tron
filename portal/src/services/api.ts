@@ -40,6 +40,7 @@ import type {
   PodCommandRequest,
   PodCommandResponse,
   DashboardOverview,
+  KubernetesEvent,
 } from '../types'
 
 const api = axios.create({
@@ -379,6 +380,9 @@ export const cronsApi = {
     const response = await api.get<CronJobLogs>(`/application_components/cron/${uuid}/jobs/${jobName}/logs?${params.toString()}`)
     return response.data
   },
+  deleteJob: async (uuid: string, jobName: string): Promise<void> => {
+    await api.delete(`/application_components/cron/${uuid}/jobs/${jobName}`)
+  },
 }
 
 // Application Components - Worker specific
@@ -424,6 +428,10 @@ export const instancesApi = {
   },
   delete: async (uuid: string): Promise<void> => {
     await api.delete(`/instances/${uuid}`)
+  },
+  getEvents: async (uuid: string): Promise<KubernetesEvent[]> => {
+    const response = await api.get<KubernetesEvent[]>(`/instances/${uuid}/events`)
+    return response.data
   },
 }
 

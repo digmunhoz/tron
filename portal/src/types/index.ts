@@ -351,3 +351,28 @@ export interface DashboardOverview {
   components_by_cluster: Record<string, number>
 }
 
+export interface KubernetesEventInvolvedObject {
+  kind: string | null
+  name: string | null
+  namespace: string | null
+}
+
+export interface KubernetesEventSource {
+  component: string | null
+  host: string | null
+}
+
+export interface KubernetesEvent {
+  name: string
+  namespace: string
+  type: string // Normal, Warning
+  reason: string
+  message: string
+  involved_object: KubernetesEventInvolvedObject
+  source: KubernetesEventSource
+  first_timestamp: string | null
+  last_timestamp: string | null
+  count: number
+  age_seconds: number
+}
+

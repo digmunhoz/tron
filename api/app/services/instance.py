@@ -268,6 +268,58 @@ class InstanceService:
         )
 
     @staticmethod
+    def get_instance_events(db: Session, uuid: UUID):
+        """
+        Busca os eventos do Kubernetes relacionados a uma instância.
+        Os eventos são buscados do namespace da aplicação.
+        """
+        # Buscar a instância com relacionamentos
+        db_instance = (
+            db.query(InstanceModel.Instance)
+            .options(
+                joinedload(InstanceModel.Instance.application),
+                joinedload(InstanceModel.Instance.environment),
+                joinedload(InstanceModel.Instance.components)
+                .joinedload(ApplicationComponentModel.ApplicationComponent.instances)
+                .joinedload(ClusterInstanceModel.ClusterInstance.cluster)
+            )
+            .filter(InstanceModel.Instance.uuid == uuid)
+            .first()
+        )
+
+        if db_instance is None:
+            raise HTTPException(status_code=404, detail="Instance not found")
+
+        # Buscar um cluster_instance de qualquer componente da instância para obter o cluster
+        # Todos os componentes da mesma instância devem estar no mesmo cluster
+        cluster_instance = None
+        for component in db_instance.components:
+            cluster_instance = (
+                db.query(ClusterInstanceModel.ClusterInstance)
+                .filter(ClusterInstanceModel.ClusterInstance.application_component_id == component.id)
+                .first()
+            )
+            if cluster_instance:
+                break
+
+        if not cluster_instance:
+            raise HTTPException(
+                status_code=404,
+                detail="Instance components are not deployed to any cluster"
+            )
+
+        cluster = cluster_instance.cluster
+        application_name = db_instance.application.name
+
+        # Criar cliente Kubernetes
+        k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+
+        # Listar eventos do namespace da aplicação
+        events = k8s_client.list_events(namespace=application_name)
+
+        return events
+
+    @staticmethod
     def delete_instance(db: Session, uuid: UUID):
         # Buscar a instância com relacionamentos
         db_instance = (

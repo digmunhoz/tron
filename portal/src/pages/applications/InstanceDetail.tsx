@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Trash2, Plus, Pencil, ChevronDown, ChevronRight, Server, ChevronUp } from 'lucide-react'
+import { X, Trash2, Plus, Pencil, ChevronDown, ChevronRight, Server, ChevronUp, AlertCircle } from 'lucide-react'
 import { applicationComponentsApi, instancesApi, applicationsApi, cronsApi, workersApi } from '../../services/api'
 import type { ApplicationComponentCreate, InstanceComponent } from '../../types'
 import { ComponentForm, type ComponentFormData, getDefaultWebappSettings, getDefaultCronSettings, getDefaultWorkerSettings } from '../../components/applications'
@@ -510,6 +510,13 @@ function InstanceDetail() {
           description={`${application?.name || 'Application'} • ${instance.environment.name} • ${instance.image}:${instance.version}`}
         />
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(`/applications/${applicationUuid}/instances/${instanceUuid}/events`)}
+            className="btn-secondary flex items-center gap-2"
+          >
+            <AlertCircle size={18} />
+            <span>Events</span>
+          </button>
           <button
             onClick={openEditInstanceModal}
             className="btn-secondary flex items-center gap-2"

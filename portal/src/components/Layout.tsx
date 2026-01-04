@@ -88,7 +88,7 @@ function Layout() {
         <aside
           className={`
             fixed md:static inset-y-0 left-0 z-40
-            w-64 glass-effect-strong border-r border-neutral-200/80
+            w-64 flex-shrink-0 glass-effect-strong border-r border-neutral-200/80
             transform transition-transform duration-300 ease-in-out
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
             pt-16 md:pt-0
@@ -174,8 +174,8 @@ function Layout() {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-6 md:p-8 lg:p-10 pb-24">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 min-w-0 p-6 md:p-8 lg:p-10 pb-24 overflow-x-hidden">
+          <div className="max-w-7xl mx-auto w-full">
             <Outlet />
           </div>
         </main>

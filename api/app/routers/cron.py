@@ -84,3 +84,13 @@ def get_cron_job_logs(
         tail_lines=tail_lines
     )
 
+
+@router.delete("/{uuid}/jobs/{job_name}")
+def delete_cron_job(
+    uuid: UUID,
+    job_name: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    return CronService.delete_cron_job(db=db, uuid=uuid, job_name=job_name)
+

@@ -561,6 +561,38 @@ class K8sClient:
             print(f"Erro ao listar jobs: {e}")
             return []
 
+    def delete_job(self, namespace: str, job_name: str):
+        """
+        Deleta um Job específico de um namespace.
+        Usado para deletar Jobs criados por CronJobs.
+
+        Args:
+            namespace: Nome do namespace
+            job_name: Nome do Job a ser deletado
+
+        Returns:
+            True se o job foi deletado com sucesso
+
+        Raises:
+            HTTPException: Se o job não for encontrado ou houver erro ao deletar
+        """
+        try:
+            batch_v1 = client.BatchV1Api(self.api_client)
+            # Deletar o job
+            batch_v1.delete_namespaced_job(
+                name=job_name,
+                namespace=namespace,
+                propagation_policy="Background"  # Deleta pods associados também
+            )
+            return True
+        except ApiException as e:
+            if e.status == 404:
+                raise HTTPException(status_code=404, detail=f"Job '{job_name}' not found")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error deleting job '{job_name}': {str(e)}"
+            )
+
     def _parse_cpu(self, cpu_str: str) -> float:
         """Converte string de CPU (ex: '500m', '1', '0.5') para float."""
         if not cpu_str:
@@ -569,6 +601,70 @@ class K8sClient:
         if cpu_str.endswith('m'):
             return float(cpu_str[:-1]) / 1000
         return float(cpu_str)
+
+    def list_events(self, namespace: str, field_selector: str = None):
+        """
+        Lista eventos de um namespace, opcionalmente filtrados por field selector.
+
+        Args:
+            namespace: Nome do namespace
+            field_selector: Filtro opcional (ex: "involvedObject.name=pod-name")
+
+        Returns:
+            Lista de eventos formatados
+        """
+        try:
+            v1 = client.CoreV1Api(self.api_client)
+
+            if field_selector:
+                events = v1.list_namespaced_event(
+                    namespace=namespace,
+                    field_selector=field_selector
+                ).items
+            else:
+                events = v1.list_namespaced_event(namespace=namespace).items
+
+            # Formatar dados dos eventos
+            formatted_events = []
+            for event in events:
+                # Calcular age (tempo desde a criação)
+                age_seconds = 0
+                if event.first_timestamp:
+                    from datetime import datetime, timezone
+                    now = datetime.now(timezone.utc)
+                    age_seconds = int((now - event.first_timestamp).total_seconds())
+
+                # Contagem de ocorrências
+                count = event.count if event.count else 1
+
+                formatted_events.append({
+                    "name": event.metadata.name,
+                    "namespace": event.metadata.namespace,
+                    "type": event.type,  # Normal, Warning
+                    "reason": event.reason or "Unknown",
+                    "message": event.message or "",
+                    "involved_object": {
+                        "kind": event.involved_object.kind if event.involved_object else None,
+                        "name": event.involved_object.name if event.involved_object else None,
+                        "namespace": event.involved_object.namespace if event.involved_object else None,
+                    },
+                    "source": {
+                        "component": event.source.component if event.source else None,
+                        "host": event.source.host if event.source else None,
+                    },
+                    "first_timestamp": event.first_timestamp.isoformat() if event.first_timestamp else None,
+                    "last_timestamp": event.last_timestamp.isoformat() if event.last_timestamp else None,
+                    "count": count,
+                    "age_seconds": age_seconds,
+                })
+
+            # Ordenar por timestamp (mais recente primeiro)
+            formatted_events.sort(key=lambda x: x["age_seconds"], reverse=False)
+
+            return formatted_events
+        except ApiException as e:
+            print(f"Erro ao listar eventos: {e}")
+            return []
 
     def _parse_memory(self, memory_str: str) -> int:
         """Converte string de memória (ex: '512Mi', '1Gi', '1000M') para MB."""

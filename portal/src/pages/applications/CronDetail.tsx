@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { FileText, X, Clock } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { FileText, X, Clock, Trash2 } from 'lucide-react'
 import { cronsApi, instancesApi, applicationsApi } from '../../services/api'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
 import { PageHeader } from '../../components/PageHeader'
@@ -34,6 +34,7 @@ function CronDetail() {
   })
 
   const [refreshInterval, setRefreshInterval] = useState<number>(10000) // Default: 10 seconds
+  const queryClient = useQueryClient()
 
   const { data: jobs = [], isLoading: isLoadingJobs } = useQuery({
     queryKey: ['cron-jobs', componentUuid],
@@ -41,6 +42,19 @@ function CronDetail() {
     enabled: !!componentUuid,
     refetchInterval: refreshInterval > 0 ? refreshInterval : false,
   })
+
+  const deleteJobMutation = useMutation({
+    mutationFn: (jobName: string) => cronsApi.deleteJob(componentUuid!, jobName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cron-jobs', componentUuid] })
+    },
+  })
+
+  const handleDeleteJob = (jobName: string) => {
+    if (confirm(`Are you sure you want to delete the job "${jobName}"? This action cannot be undone.`)) {
+      deleteJobMutation.mutate(jobName)
+    }
+  }
 
   const [selectedJob, setSelectedJob] = useState<string | null>(null)
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false)
@@ -252,17 +266,31 @@ function CronDetail() {
         emptyMessage="No job executions found"
         loadingColor="blue"
         getRowKey={(job) => job.name}
-        actions={(job) => [
-          {
-            label: 'View Logs',
-            icon: <FileText size={14} />,
-            onClick: () => {
-              setSelectedJob(job.name)
-              setIsLogsModalOpen(true)
+        actions={(job) => {
+          const actions = [
+            {
+              label: 'View Logs',
+              icon: <FileText size={14} />,
+              onClick: () => {
+                setSelectedJob(job.name)
+                setIsLogsModalOpen(true)
+              },
+              variant: 'default' as const,
             },
-            variant: 'default' as const,
-          },
-        ]}
+          ]
+
+          // Adicionar ação de delete apenas se o status for Active
+          if (job.status === 'Active') {
+            actions.push({
+              label: 'Delete',
+              icon: <Trash2 size={14} />,
+              onClick: () => handleDeleteJob(job.name),
+              variant: 'danger' as const,
+            })
+          }
+
+          return actions
+        }}
       />
 
       {/* Logs Modal */}
