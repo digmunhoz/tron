@@ -15,6 +15,7 @@ import {
   StatsGrid,
   ComponentsByEnvironment,
   ComponentsByCluster,
+  WelcomeSection,
 } from '../../components/home'
 
 function Home() {
@@ -54,7 +55,8 @@ function Home() {
         path: '/clusters',
         bgColor: 'bg-blue-50',
         iconColor: 'text-blue-600',
-        borderColor: 'border-blue-100'
+        borderColor: 'border-blue-100',
+        description: 'Kubernetes clusters managed by the platform. Each cluster can host multiple applications and components.'
       },
       {
         label: 'Environments',
@@ -63,7 +65,8 @@ function Home() {
         path: '/environments',
         bgColor: 'bg-indigo-50',
         iconColor: 'text-indigo-600',
-        borderColor: 'border-indigo-100'
+        borderColor: 'border-indigo-100',
+        description: 'Logical environments (production, staging, development) that organize your applications and instances.'
       },
     ] : []),
     {
@@ -73,7 +76,8 @@ function Home() {
       path: '/applications',
       bgColor: 'bg-purple-50',
       iconColor: 'text-purple-600',
-      borderColor: 'border-purple-100'
+      borderColor: 'border-purple-100',
+      description: 'Your deployed applications. Each application can have multiple instances across different environments.'
     },
     {
       label: 'Instances',
@@ -82,7 +86,8 @@ function Home() {
       path: '/applications',
       bgColor: 'bg-green-50',
       iconColor: 'text-green-600',
-      borderColor: 'border-green-100'
+      borderColor: 'border-green-100',
+      description: 'Application instances running in specific environments. Each instance contains one or more components.'
     },
     {
       label: 'Components',
@@ -91,7 +96,8 @@ function Home() {
       path: '/applications',
       bgColor: 'bg-orange-50',
       iconColor: 'text-orange-600',
-      borderColor: 'border-orange-100'
+      borderColor: 'border-orange-100',
+      description: 'Total components deployed across all instances. Includes webapps, workers, and cron jobs.'
     },
   ]
 
@@ -105,15 +111,18 @@ function Home() {
 
       <PageHeader title="Dashboard" description="Tron platform overview" />
 
-      <ComponentsOverview components={dashboard.components} />
+      <WelcomeSection />
 
       <StatsGrid stats={stats} />
 
-      <ComponentsByEnvironment componentsByEnvironment={dashboard.components_by_environment} />
+      <ComponentsOverview components={dashboard.components} />
 
-      {isAdmin && (
-        <ComponentsByCluster componentsByCluster={dashboard.components_by_cluster} />
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ComponentsByEnvironment componentsByEnvironment={dashboard.components_by_environment} />
+        {isAdmin && (
+          <ComponentsByCluster componentsByCluster={dashboard.components_by_cluster} />
+        )}
+      </div>
     </div>
   )
 }

@@ -1,3 +1,8 @@
+
+restart:
+	@make stop
+	@make start
+
 start:
 	@docker compose -f docker/docker-compose.yaml up -d
 	@make load-fixtures

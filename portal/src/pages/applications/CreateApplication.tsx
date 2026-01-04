@@ -44,17 +44,17 @@ function CreateApplication() {
 
   const addComponent = (type: 'webapp' | 'worker' | 'cron' = 'webapp') => {
     if (type === 'webapp') {
-      setComponents([
-        ...components,
-        {
-          name: '',
-          type: 'webapp',
-          url: null,
-          is_public: false,
-          enabled: true,
-          settings: getDefaultWebappSettings(),
-        },
-      ])
+    setComponents([
+      ...components,
+      {
+        name: '',
+        type: 'webapp',
+        url: null,
+        is_public: false,
+        enabled: true,
+        settings: getDefaultWebappSettings(),
+      },
+    ])
     } else if (type === 'cron') {
       setComponents([
         ...components,
@@ -179,16 +179,16 @@ function CreateApplication() {
           }
           return workersApi.create(componentData)
         } else {
-          const componentData: ApplicationComponentCreate = {
-            instance_uuid: instance.uuid,
-            name: component.name,
-            type: 'webapp',
-            settings: component.settings,
-            is_public: component.is_public,
-            url: component.url,
-            enabled: component.enabled,
-          }
-          return createComponentMutation.mutateAsync(componentData)
+        const componentData: ApplicationComponentCreate = {
+          instance_uuid: instance.uuid,
+          name: component.name,
+          type: 'webapp',
+          settings: component.settings,
+          is_public: component.is_public,
+          url: component.url,
+          enabled: component.enabled,
+        }
+        return createComponentMutation.mutateAsync(componentData)
         }
       })
 
@@ -262,12 +262,12 @@ function CreateApplication() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-slate-800">Components</h2>
               <div className="relative">
-                <button
-                  type="button"
+              <button
+                type="button"
                   onClick={() => setIsComponentTypeDropdownOpen(!isComponentTypeDropdownOpen)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-soft hover:shadow-soft-lg transition-all duration-200 text-sm font-medium"
-                >
-                  <Plus size={18} />
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-soft hover:shadow-soft-lg transition-all duration-200 text-sm font-medium"
+              >
+                <Plus size={18} />
                   <span>Add Component</span>
                   {isComponentTypeDropdownOpen ? (
                     <ChevronUp size={16} />
@@ -311,7 +311,7 @@ function CreateApplication() {
                           <Plus size={16} />
                           <span>Worker</span>
                         </div>
-                      </button>
+              </button>
                     </div>
                   </>
                 )}
