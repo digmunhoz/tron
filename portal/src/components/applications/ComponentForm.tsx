@@ -85,6 +85,7 @@ export function ComponentForm({
                 placeholder="myapp.example.com"
                 required
               />
+              <p className="text-xs text-slate-500 mt-1">This URL will be used as the vhost for the Ingress</p>
             </div>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-xs font-medium text-slate-600">

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
-import { applicationsApi, instancesApi, applicationComponentsApi, cronsApi } from '../../services/api'
+import { Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { applicationsApi, instancesApi, applicationComponentsApi, cronsApi, workersApi } from '../../services/api'
 import type { ApplicationCreate, InstanceCreate, ApplicationComponentCreate } from '../../types'
 import {
   ApplicationForm,
@@ -12,6 +12,7 @@ import {
   type ComponentFormData,
   getDefaultWebappSettings,
   getDefaultCronSettings,
+  getDefaultWorkerSettings,
 } from '../../components/applications'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
 
@@ -19,6 +20,7 @@ function CreateApplication() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
 
   // Application form
   const [applicationData, setApplicationData] = useState<ApplicationCreate>({
@@ -37,19 +39,47 @@ function CreateApplication() {
 
   // Components
   const [components, setComponents] = useState<ComponentFormData[]>([])
+  const [isComponentTypeDropdownOpen, setIsComponentTypeDropdownOpen] = useState(false)
 
-  const addComponent = () => {
-    setComponents([
-      ...components,
-      {
-        name: '',
-        type: 'webapp',
-        url: null,
-        is_public: false,
-        enabled: true,
-        settings: getDefaultWebappSettings(),
-      },
-    ])
+  const addComponent = (type: 'webapp' | 'worker' | 'cron' = 'webapp') => {
+    if (type === 'webapp') {
+      setComponents([
+        ...components,
+        {
+          name: '',
+          type: 'webapp',
+          url: null,
+          is_public: false,
+          enabled: true,
+          settings: getDefaultWebappSettings(),
+        },
+      ])
+    } else if (type === 'cron') {
+      setComponents([
+        ...components,
+        {
+          name: '',
+          type: 'cron',
+          url: null,
+          is_public: false,
+          enabled: true,
+          settings: getDefaultCronSettings(),
+        },
+      ])
+    } else {
+      setComponents([
+        ...components,
+        {
+          name: '',
+          type: 'worker',
+          url: null,
+          is_public: false,
+          enabled: true,
+          settings: getDefaultWorkerSettings(),
+        },
+      ])
+    }
+    setIsComponentTypeDropdownOpen(false)
   }
 
   const removeComponent = (index: number) => {
@@ -116,6 +146,7 @@ function CreateApplication() {
       }
     }
 
+    setIsCreating(true)
     try {
       // Step 1: Create application
       const application = await createApplicationMutation.mutateAsync(applicationData)
@@ -137,6 +168,15 @@ function CreateApplication() {
             enabled: component.enabled,
           }
           return cronsApi.create(componentData)
+        } else if (component.type === 'worker') {
+          const componentData: ApplicationComponentCreate = {
+            instance_uuid: instance.uuid,
+            name: component.name,
+            type: 'worker',
+            settings: component.settings,
+            enabled: component.enabled,
+          }
+          return workersApi.create(componentData)
         } else {
           const componentData: ApplicationComponentCreate = {
             instance_uuid: instance.uuid,
@@ -158,11 +198,12 @@ function CreateApplication() {
       queryClient.invalidateQueries({ queryKey: ['instances'] })
       queryClient.invalidateQueries({ queryKey: ['application-components'] })
 
-      // Navigate to application detail after 2 seconds
+      // Navigate to instance detail after 2 seconds
       setTimeout(() => {
-        navigate(`/applications/${application.uuid}`)
+        navigate(`/applications/${application.uuid}/instances/${instance.uuid}/components`)
       }, 2000)
     } catch (error: any) {
+      setIsCreating(false)
       setNotification({
         type: 'error',
         message: error.response?.data?.detail || 'Error creating application',
@@ -172,7 +213,18 @@ function CreateApplication() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 relative">
+      {isCreating && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-soft-lg p-8 flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="text-center">
+              <p className="text-lg font-semibold text-slate-800">Creating Application</p>
+              <p className="text-sm text-slate-600 mt-1">Please wait while we create your application, instance, and components...</p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Breadcrumbs
           items={[
@@ -209,14 +261,61 @@ function CreateApplication() {
           <div className="bg-white rounded-xl shadow-soft border border-slate-200/60 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-slate-800">Components</h2>
-              <button
-                type="button"
-                onClick={addComponent}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-soft hover:shadow-soft-lg transition-all duration-200 text-sm font-medium"
-              >
-                <Plus size={18} />
-                Add Component
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsComponentTypeDropdownOpen(!isComponentTypeDropdownOpen)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-soft hover:shadow-soft-lg transition-all duration-200 text-sm font-medium"
+                >
+                  <Plus size={18} />
+                  <span>Add Component</span>
+                  {isComponentTypeDropdownOpen ? (
+                    <ChevronUp size={16} />
+                  ) : (
+                    <ChevronDown size={16} />
+                  )}
+                </button>
+                {isComponentTypeDropdownOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setIsComponentTypeDropdownOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 z-20">
+                      <button
+                        type="button"
+                        onClick={() => addComponent('webapp')}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Plus size={16} />
+                          <span>Webapp</span>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addComponent('cron')}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Plus size={16} />
+                          <span>Cron</span>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addComponent('worker')}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Plus size={16} />
+                          <span>Worker</span>
+                        </div>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Info Card */}
