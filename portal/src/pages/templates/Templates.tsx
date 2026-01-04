@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Trash2, Plus, FileCode, Edit, ChevronDown, ChevronRight, Settings, ArrowUp, ArrowDown } from 'lucide-react'
+import { X, Trash2, Plus, FileCode, Edit, ChevronDown, ChevronRight, Settings, Copy, Check } from 'lucide-react'
 import { templatesApi, componentTemplateConfigsApi } from '../../services/api'
 import type {
   Template,
@@ -72,7 +72,8 @@ function Templates() {
   const [editingConfig, setEditingConfig] = useState<ComponentTemplateConfig | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
   const [selectedComponentType, setSelectedComponentType] = useState<string>('webapp')
-  const [showVariables, setShowVariables] = useState(false)
+  const [showVariables, setShowVariables] = useState(true)
+  const [copiedPath, setCopiedPath] = useState<string | null>(null)
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const queryClient = useQueryClient()
 
@@ -307,18 +308,44 @@ function Templates() {
     })
   }
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedPath(text)
+    setTimeout(() => setCopiedPath(null), 2000)
+  }
+
   const renderVariablesTree = (obj: any, prefix = '', level = 0) => {
     return Object.entries(obj).map(([key, value]) => {
       const fullPath = prefix ? `${prefix}.${key}` : key
       const isObject = typeof value === 'object' && value !== null && !Array.isArray(value)
+      const isCopied = copiedPath === fullPath
 
       return (
-        <div key={fullPath} className={level > 0 ? 'ml-4' : ''}>
-          <div className="flex items-center gap-1 py-1 text-sm">
-            <span className="text-slate-600 font-mono">{fullPath}</span>
-            {typeof value === 'string' && <span className="text-slate-400">({value})</span>}
+        <div key={fullPath} className={level > 0 ? 'ml-6 border-l-2 border-slate-200 pl-3' : ''}>
+          <div className="group flex items-center gap-2 py-1.5 hover:bg-slate-50 rounded px-2 -ml-2 transition-colors">
+            <button
+              onClick={() => copyToClipboard(fullPath)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 rounded"
+              title="Copy path"
+            >
+              {isCopied ? (
+                <Check size={14} className="text-green-600" />
+              ) : (
+                <Copy size={14} className="text-slate-500" />
+              )}
+            </button>
+            <div className="flex-1 min-w-0">
+              <span className="text-slate-800 font-mono text-sm font-medium">{key}</span>
+              {typeof value === 'string' && (
+                <span className="ml-2 text-slate-500 text-xs">: {value}</span>
+              )}
+            </div>
           </div>
-          {isObject && renderVariablesTree(value, fullPath, level + 1)}
+          {isObject && (
+            <div className="mt-1">
+              {renderVariablesTree(value, fullPath, level + 1)}
+            </div>
+          )}
         </div>
       )
     })
@@ -477,17 +504,27 @@ function Templates() {
 
         {/* Variables Panel */}
         <div className="lg:col-span-1">
-          <div className="glass-effect rounded-xl shadow-soft p-4">
+          <div className="bg-white rounded-xl shadow-soft border border-slate-200/60 overflow-hidden">
             <button
               onClick={() => setShowVariables(!showVariables)}
-              className="flex items-center justify-between w-full text-left mb-2"
+              className="flex items-center justify-between w-full text-left p-4 hover:bg-slate-50 transition-colors"
             >
-              <h3 className="text-sm font-semibold text-slate-800">Available Variables</h3>
-              {showVariables ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800">Available Variables</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Click to copy variable paths</p>
+              </div>
+              {showVariables ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
             </button>
             {showVariables && (
-              <div className="mt-3 space-y-2 text-xs text-slate-600 max-h-96 overflow-y-auto">
-                {renderVariablesTree(WEBAPP_VARIABLES)}
+              <div className="border-t border-slate-200/60 p-4 max-h-[600px] overflow-y-auto">
+                <div className="space-y-1">
+                  {renderVariablesTree(WEBAPP_VARIABLES)}
+                </div>
+                <div className="mt-4 pt-4 border-t border-slate-200/60">
+                  <p className="text-xs text-slate-500">
+                    <strong className="text-slate-700">Tip:</strong> Hover over any variable and click the copy icon to copy its path to your clipboard.
+                  </p>
+                </div>
               </div>
             )}
           </div>
