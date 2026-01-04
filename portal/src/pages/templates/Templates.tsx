@@ -32,6 +32,10 @@ const WEBAPP_VARIABLES = {
       memory: 'number',
       cpu_scaling_threshold: 'number',
       memory_scaling_threshold: 'number',
+      autoscaling: {
+        min: 'number',
+        max: 'number',
+      },
       custom_metrics: {
         enabled: 'boolean',
         path: 'string',

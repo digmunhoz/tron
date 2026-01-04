@@ -6,4 +6,5 @@ export { EndpointsInput } from './EndpointsInput'
 export { CustomMetricsInput } from './CustomMetricsInput'
 export { ScalingThresholdsInput } from './ScalingThresholdsInput'
 export { ScheduleInput } from './ScheduleInput'
+export { AutoscalingInput } from './AutoscalingInput'
 

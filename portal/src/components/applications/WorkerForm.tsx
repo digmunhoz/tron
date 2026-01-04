@@ -1,14 +1,10 @@
-import type { CronSettings } from './types'
+import type { WorkerSettings } from './types'
 import { CpuMemoryInput } from './form-components/CpuMemoryInput'
+import { ScalingThresholdsInput } from './form-components/ScalingThresholdsInput'
+import { AutoscalingInput } from './form-components/AutoscalingInput'
+import { CustomMetricsInput } from './form-components/CustomMetricsInput'
 import { EnvVarsInput } from './form-components/EnvVarsInput'
 import { CommandInput } from './form-components/CommandInput'
-
-interface WorkerSettings {
-  envs: Array<{ key: string; value: string }>
-  command: string | null
-  cpu: number
-  memory: number
-}
 
 interface WorkerFormProps {
   settings: WorkerSettings
@@ -29,6 +25,23 @@ export function WorkerForm({ settings, onChange }: WorkerFormProps) {
         memory={settings.memory}
         onCpuChange={(cpu) => updateField('cpu', cpu)}
         onMemoryChange={(memory) => updateField('memory', memory)}
+      />
+
+      <ScalingThresholdsInput
+        cpuScalingThreshold={settings.cpu_scaling_threshold}
+        memoryScalingThreshold={settings.memory_scaling_threshold}
+        onCpuScalingThresholdChange={(value) => updateField('cpu_scaling_threshold', value)}
+        onMemoryScalingThresholdChange={(value) => updateField('memory_scaling_threshold', value)}
+      />
+
+      <AutoscalingInput
+        autoscaling={settings.autoscaling}
+        onChange={(autoscaling) => updateField('autoscaling', autoscaling)}
+      />
+
+      <CustomMetricsInput
+        customMetrics={settings.custom_metrics}
+        onChange={(customMetrics) => updateField('custom_metrics', customMetrics)}
       />
 
       <CommandInput

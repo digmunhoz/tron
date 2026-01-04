@@ -9,7 +9,7 @@ metadata:
     alias: "{{ application.component_name }}"
     namespace: "{{  application.application_name }}"
     tier: "tier-3"
-    type: "web"
+    type: "worker"
 spec:
   minReplicas: {{ application.settings.autoscaling.min }}
   maxReplicas: {{ application.settings.autoscaling.max }}

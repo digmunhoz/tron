@@ -1,6 +1,7 @@
 import type { WebappSettings } from './types'
 import { CpuMemoryInput } from './form-components/CpuMemoryInput'
 import { ScalingThresholdsInput } from './form-components/ScalingThresholdsInput'
+import { AutoscalingInput } from './form-components/AutoscalingInput'
 import { HealthcheckInput } from './form-components/HealthcheckInput'
 import { EndpointsInput } from './form-components/EndpointsInput'
 import { CustomMetricsInput } from './form-components/CustomMetricsInput'
@@ -33,6 +34,11 @@ export function WebappForm({ settings, onChange }: WebappFormProps) {
         memoryScalingThreshold={settings.memory_scaling_threshold}
         onCpuScalingThresholdChange={(value) => updateField('cpu_scaling_threshold', value)}
         onMemoryScalingThresholdChange={(value) => updateField('memory_scaling_threshold', value)}
+      />
+
+      <AutoscalingInput
+        autoscaling={settings.autoscaling}
+        onChange={(autoscaling) => updateField('autoscaling', autoscaling)}
       />
 
       <HealthcheckInput

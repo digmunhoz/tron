@@ -40,6 +40,10 @@ def get_variables_schema() -> str:
       "memory": "number",
       "cpu_scaling_threshold": "number",
       "memory_scaling_threshold": "number",
+      "autoscaling": {
+        "min": "number",
+        "max": "number"
+      },
       "custom_metrics": {
         "enabled": "boolean",
         "port": "number",
@@ -87,6 +91,7 @@ def load_templates(db: Session):
     templates_base_dir = Path(__file__).parent.parent / "app" / "k8s" / "templates"
     webapp_dir = templates_base_dir / "webapp"
     cron_dir = templates_base_dir / "cron"
+    worker_dir = templates_base_dir / "worker"
 
     templates_data = [
         # Templates Webapp
@@ -118,6 +123,21 @@ def load_templates(db: Session):
             "category": "cron",
             "file_path": cron_dir / "cron.yaml.j2",
             "render_order": 1,
+        },
+
+        {
+            "name": "Worker Deployment",
+            "description": "Template de Deployment para componentes worker",
+            "category": "worker",
+            "file_path": worker_dir / "deployment.yaml.j2",
+            "render_order": 1,
+        },
+        {
+            "name": "Worker HPA",
+            "description": "Template de HorizontalPodAutoscaler para componentes worker",
+            "category": "worker",
+            "file_path": worker_dir / "hpa.yaml.j2",
+            "render_order": 2,
         },
     ]
 

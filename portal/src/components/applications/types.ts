@@ -28,6 +28,10 @@ export interface WebappSettings {
   }
   cpu: number
   memory: number
+  autoscaling: {
+    min: number
+    max: number
+  }
 }
 
 export interface CronSettings {
@@ -41,13 +45,34 @@ export interface CronSettings {
   schedule: string
 }
 
+export interface WorkerSettings {
+  custom_metrics: {
+    enabled: boolean
+    path: string
+    port: number
+  }
+  envs: Array<{
+    key: string
+    value: string
+  }>
+  command: string | null
+  cpu: number
+  memory: number
+  cpu_scaling_threshold: number
+  memory_scaling_threshold: number
+  autoscaling: {
+    min: number
+    max: number
+  }
+}
+
 export interface ComponentFormData {
   name: string
   type: 'webapp' | 'worker' | 'cron'
   url: string | null
   is_public: boolean
   enabled: boolean
-  settings: WebappSettings | CronSettings | null
+  settings: WebappSettings | CronSettings | WorkerSettings | null
 }
 
 export const getDefaultWebappSettings = (): WebappSettings => ({
@@ -79,6 +104,10 @@ export const getDefaultWebappSettings = (): WebappSettings => ({
   },
   cpu: 0.5,
   memory: 512,
+  autoscaling: {
+    min: 2,
+    max: 10,
+  },
 })
 
 export const getDefaultCronSettings = (): CronSettings => ({
@@ -87,5 +116,23 @@ export const getDefaultCronSettings = (): CronSettings => ({
   cpu: 0.5,
   memory: 512,
   schedule: '0 0 * * *', // Daily at midnight
+})
+
+export const getDefaultWorkerSettings = (): WorkerSettings => ({
+  custom_metrics: {
+    enabled: false,
+    path: '/metrics',
+    port: 8080,
+  },
+  envs: [],
+  command: null,
+  cpu: 0.5,
+  memory: 512,
+  cpu_scaling_threshold: 80,
+  memory_scaling_threshold: 80,
+  autoscaling: {
+    min: 2,
+    max: 10,
+  },
 })
 

@@ -5,6 +5,6 @@ export { ComponentForm } from './ComponentForm'
 export { WebappForm } from './WebappForm'
 export { CronForm } from './CronForm'
 export { WorkerForm } from './WorkerForm'
-export type { ComponentFormData, WebappSettings, CronSettings } from './types'
-export { getDefaultWebappSettings, getDefaultCronSettings } from './types'
+export type { ComponentFormData, WebappSettings, CronSettings, WorkerSettings } from './types'
+export { getDefaultWebappSettings, getDefaultCronSettings, getDefaultWorkerSettings } from './types'
 

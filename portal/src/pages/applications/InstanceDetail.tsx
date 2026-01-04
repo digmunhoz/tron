@@ -2,9 +2,9 @@ import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Trash2, Plus, Pencil, ChevronDown, ChevronRight, Server, ChevronUp } from 'lucide-react'
-import { applicationComponentsApi, instancesApi, applicationsApi, cronsApi } from '../../services/api'
+import { applicationComponentsApi, instancesApi, applicationsApi, cronsApi, workersApi } from '../../services/api'
 import type { ApplicationComponentCreate, InstanceComponent } from '../../types'
-import { ComponentForm, type ComponentFormData, getDefaultWebappSettings, getDefaultCronSettings } from '../../components/applications'
+import { ComponentForm, type ComponentFormData, getDefaultWebappSettings, getDefaultCronSettings, getDefaultWorkerSettings } from '../../components/applications'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
 import DataTable from '../../components/DataTable'
 
@@ -54,14 +54,23 @@ function InstanceDetail() {
         enabled: true,
         settings: getDefaultWebappSettings(),
       })
-    } else {
+    } else if (type === 'cron') {
       setComponent({
         name: '',
-        type: type,
+        type: 'cron',
         url: null,
         is_public: false,
         enabled: true,
         settings: getDefaultCronSettings(),
+      })
+    } else {
+      setComponent({
+        name: '',
+        type: 'worker',
+        url: null,
+        is_public: false,
+        enabled: true,
+        settings: getDefaultWorkerSettings(),
       })
     }
   }
@@ -71,22 +80,51 @@ function InstanceDetail() {
     const componentType = componentData.type as 'webapp' | 'worker' | 'cron'
 
     if (componentType === 'webapp') {
+      const defaultSettings = getDefaultWebappSettings()
+      const existingSettings = (componentData.settings as ComponentFormData['settings']) || defaultSettings
+      // Garantir que autoscaling existe, mesclando com valores padrão se necessário
+      const settings = {
+        ...defaultSettings,
+        ...existingSettings,
+        autoscaling: existingSettings && 'autoscaling' in existingSettings
+          ? existingSettings.autoscaling
+          : defaultSettings.autoscaling,
+      }
       setComponent({
         name: componentData.name,
         type: 'webapp',
         url: componentData.url,
         is_public: false, // TODO: get from component if available
         enabled: componentData.enabled,
-        settings: (componentData.settings as ComponentFormData['settings']) || getDefaultWebappSettings(),
+        settings,
       })
-    } else {
+    } else if (componentType === 'cron') {
       setComponent({
         name: componentData.name,
-        type: componentType,
+        type: 'cron',
         url: null,
         is_public: false,
         enabled: componentData.enabled,
         settings: (componentData.settings as ComponentFormData['settings']) || getDefaultCronSettings(),
+      })
+    } else {
+      const defaultSettings = getDefaultWorkerSettings()
+      const existingSettings = (componentData.settings as ComponentFormData['settings']) || defaultSettings
+      // Garantir que autoscaling existe, mesclando com valores padrão se necessário
+      const settings = {
+        ...defaultSettings,
+        ...existingSettings,
+        autoscaling: existingSettings && 'autoscaling' in existingSettings
+          ? existingSettings.autoscaling
+          : defaultSettings.autoscaling,
+      }
+      setComponent({
+        name: componentData.name,
+        type: 'worker',
+        url: null,
+        is_public: false,
+        enabled: componentData.enabled,
+        settings,
       })
     }
     setIsAddComponentsModalOpen(true)
@@ -300,6 +338,21 @@ function InstanceDetail() {
         )
       },
     },
+    {
+      key: 'autoscaling',
+      label: 'Autoscaling',
+      render: (component: InstanceComponent) => {
+        const autoscaling = (component.settings as any)?.autoscaling
+        if (!autoscaling || (autoscaling.min === undefined && autoscaling.max === undefined)) {
+          return <div className="text-sm text-slate-400">N/A</div>
+        }
+        return (
+          <div className="text-sm text-slate-600">
+            {autoscaling.min ?? '-'} - {autoscaling.max ?? '-'}
+          </div>
+        )
+      },
+    },
   ], [])
 
   // Colunas específicas para cron
@@ -338,6 +391,25 @@ function InstanceDetail() {
     },
   ], [])
 
+  // Colunas específicas para worker
+  const workerColumns = useMemo(() => [
+    {
+      key: 'autoscaling',
+      label: 'Autoscaling',
+      render: (component: InstanceComponent) => {
+        const autoscaling = (component.settings as any)?.autoscaling
+        if (!autoscaling || (autoscaling.min === undefined && autoscaling.max === undefined)) {
+          return <div className="text-sm text-slate-400">N/A</div>
+        }
+        return (
+          <div className="text-sm text-slate-600">
+            {autoscaling.min ?? '-'} - {autoscaling.max ?? '-'}
+          </div>
+        )
+      },
+    },
+  ], [])
+
   // Função para obter colunas baseado no tipo
   const getColumnsForType = (componentType: 'webapp' | 'worker' | 'cron') => {
     if (componentType === 'webapp') {
@@ -348,6 +420,7 @@ function InstanceDetail() {
         webappColumns[1], // visibility
         baseColumns[2], // cpu
         baseColumns[3], // memory
+        webappColumns[2], // autoscaling
         baseColumns[4], // status
       ]
     }
@@ -361,7 +434,14 @@ function InstanceDetail() {
         baseColumns[4], // status
       ]
     }
-    return baseColumns
+    // Worker: name, cpu, memory, autoscaling, status (sem URL)
+    return [
+      baseColumns[0], // name
+      baseColumns[2], // cpu
+      baseColumns[3], // memory
+      workerColumns[0], // autoscaling
+      baseColumns[4], // status
+    ]
   }
 
   const toggleType = (type: 'webapp' | 'worker' | 'cron') => {
@@ -741,6 +821,27 @@ function InstanceDetail() {
                               })
                               setTimeout(() => setNotification(null), 5000)
                             })
+                          } else if (component.type === 'worker') {
+                            const componentData: Partial<ApplicationComponentCreate> = {
+                              type: 'worker',
+                              settings: component.settings,
+                              enabled: component.enabled,
+                            }
+                            workersApi.update(editingComponentUuid, componentData).then(() => {
+                              setNotification({ type: 'success', message: 'Component updated successfully' })
+                              queryClient.invalidateQueries({ queryKey: ['instances'] })
+                              queryClient.invalidateQueries({ queryKey: ['application-components'] })
+                              setEditingComponentUuid(null)
+                              setComponent(null)
+                              setIsAddComponentsModalOpen(false)
+                              setTimeout(() => setNotification(null), 5000)
+                            }).catch((error: any) => {
+                              setNotification({
+                                type: 'error',
+                                message: error.response?.data?.detail || 'Error updating component',
+                              })
+                              setTimeout(() => setNotification(null), 5000)
+                            })
                           } else {
                             const componentData: Partial<ApplicationComponentCreate> = {
                               type: 'webapp',
@@ -762,6 +863,28 @@ function InstanceDetail() {
                               enabled: component.enabled,
                             }
                             cronsApi.create(componentData).then(() => {
+                              setNotification({ type: 'success', message: 'Component added successfully' })
+                              queryClient.invalidateQueries({ queryKey: ['instances'] })
+                              queryClient.invalidateQueries({ queryKey: ['application-components'] })
+                              setComponent(null)
+                              setIsAddComponentsModalOpen(false)
+                              setTimeout(() => setNotification(null), 5000)
+                            }).catch((error: any) => {
+                              setNotification({
+                                type: 'error',
+                                message: error.response?.data?.detail || 'Error adding component',
+                              })
+                              setTimeout(() => setNotification(null), 5000)
+                            })
+                          } else if (component.type === 'worker') {
+                            const componentData: ApplicationComponentCreate = {
+                              instance_uuid: instance.uuid,
+                              name: component.name,
+                              type: 'worker',
+                              settings: component.settings,
+                              enabled: component.enabled,
+                            }
+                            workersApi.create(componentData).then(() => {
                               setNotification({ type: 'success', message: 'Component added successfully' })
                               queryClient.invalidateQueries({ queryKey: ['instances'] })
                               queryClient.invalidateQueries({ queryKey: ['application-components'] })

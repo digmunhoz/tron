@@ -1,6 +1,5 @@
 import { X } from 'lucide-react'
-import type { ComponentFormData, WebappSettings, CronSettings } from './types'
-import { getDefaultWebappSettings, getDefaultCronSettings } from './types'
+import type { ComponentFormData, WebappSettings, CronSettings, WorkerSettings } from './types'
 import { WebappForm } from './WebappForm'
 import { CronForm } from './CronForm'
 import { WorkerForm } from './WorkerForm'
@@ -26,7 +25,7 @@ export function ComponentForm({
     onChange({ ...component, [field]: value })
   }
 
-  const handleSettingsChange = (settings: WebappSettings | CronSettings) => {
+  const handleSettingsChange = (settings: WebappSettings | CronSettings | WorkerSettings) => {
     updateField('settings', settings)
   }
 
@@ -151,22 +150,10 @@ export function ComponentForm({
                 Enabled
               </label>
             </div>
-            {component.settings && !('endpoints' in component.settings) && (
+            {component.settings && 'custom_metrics' in component.settings && (
               <WorkerForm
-                settings={{
-                  envs: (component.settings as CronSettings).envs,
-                  command: (component.settings as CronSettings).command,
-                  cpu: (component.settings as CronSettings).cpu,
-                  memory: (component.settings as CronSettings).memory,
-                }}
-                onChange={(workerSettings) => {
-                  // Convert worker settings to cron settings format (without schedule)
-                  const cronSettings: CronSettings = {
-                    ...workerSettings,
-                    schedule: '0 0 * * *', // Default schedule, not used for worker
-                  }
-                  handleSettingsChange(cronSettings)
-                }}
+                settings={component.settings as WorkerSettings}
+                onChange={handleSettingsChange as (settings: WorkerSettings) => void}
               />
             )}
           </>
