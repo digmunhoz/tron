@@ -84,7 +84,7 @@ export interface WebappDeploy {
   custom_metrics: Record<string, any>
   endpoints: Record<string, any>
   envs: Array<{ key: string; value: string }> | null
-  secrets: Array<{ key: string; value: string }> | null
+  command: string | null
   healthcheck: Record<string, any>
   created_at: string
   updated_at: string
@@ -103,7 +103,7 @@ export interface WebappDeployCreate {
   custom_metrics: Record<string, any>
   endpoints: Record<string, any>
   envs: Array<{ key: string; value: string }> | null
-  secrets: Array<{ key: string; value: string }> | null
+  command: string | null
   healthcheck: Record<string, any>
 }
 

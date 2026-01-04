@@ -318,6 +318,36 @@ class K8sClient:
             elif operation == "upsert":
                 # Tenta atualizar primeiro, se não existir, cria
                 try:
+                    # Para Deployments, preservar o número de réplicas atual se não especificado
+                    if kind == "Deployment" and "spec" in document:
+                        try:
+                            read_method = getattr(api_instance, "read_namespaced_deployment", None)
+                            if read_method:
+                                existing_deployment = read_method(name=name, namespace=namespace)
+
+                                # Se o novo documento não especifica replicas, preservar o valor atual
+                                # Isso evita que o Kubernetes resete para o valor padrão (1) ou conflite com HPA
+                                if "replicas" not in document.get("spec", {}):
+                                    if hasattr(existing_deployment.spec, "replicas") and existing_deployment.spec.replicas is not None:
+                                        document["spec"]["replicas"] = existing_deployment.spec.replicas
+
+                                # Preservar também resourceVersion e outras metadatas necessárias para evitar conflitos
+                                # O resourceVersion é necessário para o replace funcionar corretamente
+                                if hasattr(existing_deployment.metadata, "resource_version") and existing_deployment.metadata.resource_version:
+                                    if "metadata" not in document:
+                                        document["metadata"] = {}
+                                    document["metadata"]["resourceVersion"] = existing_deployment.metadata.resource_version
+
+                                    # Preservar também generation se existir
+                                    if hasattr(existing_deployment.metadata, "generation") and existing_deployment.metadata.generation:
+                                        document["metadata"]["generation"] = existing_deployment.metadata.generation
+                        except ApiException as read_e:
+                            # Se não conseguir ler (404 ou outro erro), continua normalmente
+                            # Isso significa que o deployment não existe ainda, então criaremos
+                            if read_e.status != 404:
+                                # Se for outro erro, loga mas continua
+                                print(f"Warning: Could not read existing deployment to preserve replicas: {read_e}")
+
                     getattr(api_instance, replace_method)(
                         name=name, namespace=namespace, body=document
                     )

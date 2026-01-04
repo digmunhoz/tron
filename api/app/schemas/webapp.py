@@ -1,8 +1,9 @@
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from enum import Enum
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Union
 from uuid import UUID
 from datetime import datetime
+import shlex
 
 
 class WebappProtocolType(str, Enum):
@@ -33,11 +34,6 @@ class WebappEnvs(BaseModel):
     value: str
 
 
-class WebappSecrets(BaseModel):
-    name: str
-    key: str
-
-
 class WebappCustomMetrics(BaseModel):
     enabled: bool = False
     path: str = "/metrics"
@@ -58,12 +54,25 @@ class WebappSettings(BaseModel):
     custom_metrics: WebappCustomMetrics
     endpoints: List[WebappEndpoints]
     envs: List[WebappEnvs] = []
-    secrets: List[WebappSecrets] = []
+    command: Union[str, List[str], None] = None
     cpu_scaling_threshold: int = 80
     memory_scaling_threshold: int = 80
     healthcheck: WebappHealthcheck
     cpu: float
     memory: int
+
+    @model_validator(mode='after')
+    def parse_command(self):
+        """Parse command string into array if it's a string"""
+        if isinstance(self.command, str):
+            # Use shlex to properly parse the command string, handling quotes and spaces
+            command_str = self.command.strip()
+            if command_str:
+                self.command = shlex.split(command_str)
+            else:
+                self.command = None
+        # If it's already a list or None, keep it as is
+        return self
 
 
 class WebappBase(BaseModel):

@@ -543,67 +543,25 @@ export function ComponentForm({
                   ))}
                 </div>
 
-                {/* Secrets */}
+                {/* Command */}
                 <div className="border border-slate-200 rounded-lg p-3 bg-white">
-                  <div className="flex items-center justify-between mb-2">
-                    <h5 className="text-xs font-semibold text-slate-700">Secrets</h5>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateSettings('secrets', [
-                          ...component.settings!.secrets,
-                          { name: '', key: '' },
-                        ])
-                      }}
-                      className="text-xs text-blue-600 hover:text-blue-700"
-                    >
-                      + Add
-                    </button>
-                  </div>
-                  {component.settings.secrets.map((secret, secretIndex) => (
-                    <div key={secretIndex} className="mb-2 grid grid-cols-3 gap-2">
-                      <div>
-                        <input
-                          type="text"
-                          value={secret.name}
-                          onChange={(e) => {
-                            const updated = component.settings!.secrets.map((s, i) =>
-                              i === secretIndex ? { ...s, name: e.target.value } : s
-                            )
-                            updateSettings('secrets', updated)
-                          }}
-                          placeholder="Name"
-                          className="w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400"
-                        />
-                      </div>
-                      <div>
-                        <input
-                          type="text"
-                          value={secret.key}
-                          onChange={(e) => {
-                            const updated = component.settings!.secrets.map((s, i) =>
-                              i === secretIndex ? { ...s, key: e.target.value } : s
-                            )
-                            updateSettings('secrets', updated)
-                          }}
-                          placeholder="Key"
-                          className="w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          updateSettings(
-                            'secrets',
-                            component.settings!.secrets.filter((_, i) => i !== secretIndex)
-                          )
-                        }}
-                        className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-xs"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
+                  <h5 className="text-xs font-semibold text-slate-700 mb-2">Command (optional)</h5>
+                  <p className="text-xs text-slate-500 mb-2">
+                    Override the default container command. Enter the full command as a string (e.g., "python app.py --port 8080").
+                  </p>
+                  <textarea
+                    value={component.settings.command || ''}
+                    onChange={(e) => {
+                      const value = e.target.value.trim()
+                      updateSettings('command', value.length > 0 ? value : null)
+                    }}
+                    placeholder='python app.py --port 8080'
+                    rows={3}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs font-mono focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">
+                    Leave empty to use the default image command. The command will be parsed and split into arguments automatically.
+                  </p>
                 </div>
               </div>
             )}

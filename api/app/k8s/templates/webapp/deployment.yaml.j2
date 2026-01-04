@@ -48,6 +48,12 @@ spec:
             topologyKey: "kubernetes.io/hostname"
       containers:
       - name: "teste"
+        {% if application.settings.command -%}
+        command:
+        - /bin/sh
+        - -c
+        args: {{ application.settings.command }}
+        {% endif %}
         env:
         {% for env in application.settings.envs -%}
         - name: {{env.key}}

@@ -39,7 +39,7 @@ const WEBAPP_VARIABLES = {
       },
       endpoints: 'array<{source_protocol: string, source_port: number, dest_protocol: string, dest_port: number}>',
       envs: 'array<{key: string, value: string}>',
-      secrets: 'array<{name: string, key: string}>',
+      command: 'string | null (will be parsed into array)',
       healthcheck: {
         path: 'string',
         protocol: 'string (http|tcp)',

@@ -203,7 +203,7 @@ function CreateInstance() {
               </p>
               <ul className="text-sm text-blue-900 space-y-1.5 ml-4 list-disc">
                 <li>
-                  <strong>Webapp:</strong> A web application component that serves HTTP/HTTPS traffic. Requires a URL and can be configured with endpoints, healthchecks, environment variables, secrets, and resource limits (CPU, memory).
+                  <strong>Webapp:</strong> A web application component that serves HTTP/HTTPS traffic. Requires a URL and can be configured with endpoints, healthchecks, environment variables, command override, and resource limits (CPU, memory).
                 </li>
                 <li>
                   <strong>Worker:</strong> A background worker component that processes jobs or tasks asynchronously. Typically used for long-running background processes, queue processing, or scheduled tasks.

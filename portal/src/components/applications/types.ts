@@ -14,10 +14,7 @@ export interface WebappSettings {
     key: string
     value: string
   }>
-  secrets: Array<{
-    name: string
-    key: string
-  }>
+  command: string | null
   cpu_scaling_threshold: number
   memory_scaling_threshold: number
   healthcheck: {
@@ -57,7 +54,7 @@ export const getDefaultWebappSettings = (): WebappSettings => ({
     },
   ],
   envs: [],
-  secrets: [],
+  command: null,
   cpu_scaling_threshold: 80,
   memory_scaling_threshold: 80,
   healthcheck: {
