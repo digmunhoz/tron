@@ -2,6 +2,28 @@
 
 PaaS platform built on top of Kubernetes that simplifies application deployment and management.
 
+## 📸 Platform Overview
+
+### Dashboard
+The dashboard provides a comprehensive overview of your platform, including statistics, component breakdown, and resource distribution across environments and clusters.
+
+![Dashboard](images/dashboard.jpg)
+
+### Templates
+Manage reusable Kubernetes templates with Jinja2 templating. Create and configure templates for different component types (webapp, worker, cron) with customizable variables.
+
+![Templates](images/templates.jpg)
+
+### Applications
+Organize and manage your applications. Each application can have multiple instances deployed across different environments with independent configurations.
+
+![Applications](images/applications.jpg)
+
+### Instance Details
+View and manage components within an instance. Configure webapps, workers, and cron jobs with their specific settings, monitor their status, and access detailed information.
+
+![Instance](images/instance.jpg)
+
 ## 🚀 Quick Start
 
 ### Prerequisites
