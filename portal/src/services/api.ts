@@ -33,6 +33,8 @@ import type {
   ApiTokenCreate,
   ApiTokenUpdate,
   ApiTokenCreateResponse,
+  CronJob,
+  CronJobLogs,
 } from '../types'
 
 const api = axios.create({
@@ -358,6 +360,19 @@ export const cronsApi = {
   },
   delete: async (uuid: string): Promise<void> => {
     await api.delete(`/application_components/cron/${uuid}`)
+  },
+  getJobs: async (uuid: string): Promise<CronJob[]> => {
+    const response = await api.get<CronJob[]>(`/application_components/cron/${uuid}/jobs`)
+    return response.data
+  },
+  getJobLogs: async (uuid: string, jobName: string, containerName?: string, tailLines: number = 100): Promise<CronJobLogs> => {
+    const params = new URLSearchParams()
+    if (containerName) {
+      params.append('container_name', containerName)
+    }
+    params.append('tail_lines', tailLines.toString())
+    const response = await api.get<CronJobLogs>(`/application_components/cron/${uuid}/jobs/${jobName}/logs?${params.toString()}`)
+    return response.data
   },
 }
 

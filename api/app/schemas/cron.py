@@ -85,3 +85,32 @@ class Cron(CronBase):
         from_attributes=True,
     )
 
+
+class CronJob(BaseModel):
+    """Schema para representar um Job executado por um CronJob"""
+    name: str
+    status: str  # Succeeded, Failed, Active, Unknown
+    succeeded: int
+    failed: int
+    active: int
+    start_time: str | None
+    completion_time: str | None
+    age_seconds: int
+    duration_seconds: int | None
+
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+
+class CronJobLogs(BaseModel):
+    """Schema para logs de um Job"""
+    logs: str
+    pod_name: str
+    job_name: str
+    container_name: str | None = None
+
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+

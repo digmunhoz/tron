@@ -580,6 +580,16 @@ function InstanceDetail() {
                           })
                         }
 
+                        // Adicionar "Executions" apenas para cron
+                        if (type === 'cron') {
+                          actions.push({
+                            label: 'Executions',
+                            icon: <Server size={14} />,
+                            onClick: () => navigate(`/applications/${applicationUuid}/instances/${instanceUuid}/components/${component.uuid}/executions`),
+                            variant: 'default' as const,
+                          })
+                        }
+
                         actions.push(
                           {
                             label: 'Edit',

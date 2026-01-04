@@ -337,6 +337,138 @@ class CronService:
         return [CronSchema.Cron.model_validate(cron) for cron in db_crons]
 
     @staticmethod
+    def get_cron_jobs(db: Session, uuid: UUID):
+        """
+        Lista os Jobs executados por um CronJob específico.
+        """
+        # Buscar o componente com relacionamentos
+        db_cron = (
+            db.query(ApplicationComponentModel.ApplicationComponent)
+            .options(
+                joinedload(ApplicationComponentModel.ApplicationComponent.instance)
+                .joinedload(InstanceModel.Instance.application),
+                joinedload(ApplicationComponentModel.ApplicationComponent.instances)
+                .joinedload(ClusterInstanceModel.ClusterInstance.cluster)
+            )
+            .filter(ApplicationComponentModel.ApplicationComponent.uuid == uuid)
+            .first()
+        )
+
+        if db_cron is None:
+            raise HTTPException(status_code=404, detail="Cron not found")
+        if db_cron.type != ApplicationComponentModel.WebappType.cron:
+            raise HTTPException(
+                status_code=400,
+                detail="Component is not a cron"
+            )
+
+        # Buscar cluster_instance relacionado
+        cluster_instance = (
+            db.query(ClusterInstanceModel.ClusterInstance)
+            .filter(ClusterInstanceModel.ClusterInstance.application_component_id == db_cron.id)
+            .first()
+        )
+
+        if not cluster_instance:
+            raise HTTPException(
+                status_code=404,
+                detail="Cron is not deployed to any cluster"
+            )
+
+        cluster = cluster_instance.cluster
+        application_name = db_cron.instance.application.name
+        component_name = db_cron.name
+
+        # Criar cliente Kubernetes
+        k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+
+        # Listar jobs usando label selector baseado no nome do componente
+        # Jobs criados por CronJobs têm labels que incluem o nome do CronJob
+        label_selector = f"app={component_name}"
+        jobs = k8s_client.list_jobs(namespace=application_name, label_selector=label_selector)
+
+        # Se não encontrar com esse seletor, tentar sem seletor e filtrar depois
+        if not jobs:
+            all_jobs = k8s_client.list_jobs(namespace=application_name)
+            jobs = [job for job in all_jobs if component_name in job['name']]
+
+        return jobs
+
+    @staticmethod
+    def get_cron_job_logs(db: Session, uuid: UUID, job_name: str, container_name: str = None, tail_lines: int = 100):
+        """
+        Obtém os logs dos pods criados por um Job específico de um CronJob.
+        """
+        # Buscar o componente com relacionamentos
+        db_cron = (
+            db.query(ApplicationComponentModel.ApplicationComponent)
+            .options(
+                joinedload(ApplicationComponentModel.ApplicationComponent.instance)
+                .joinedload(InstanceModel.Instance.application),
+                joinedload(ApplicationComponentModel.ApplicationComponent.instances)
+                .joinedload(ClusterInstanceModel.ClusterInstance.cluster)
+            )
+            .filter(ApplicationComponentModel.ApplicationComponent.uuid == uuid)
+            .first()
+        )
+
+        if db_cron is None:
+            raise HTTPException(status_code=404, detail="Cron not found")
+        if db_cron.type != ApplicationComponentModel.WebappType.cron:
+            raise HTTPException(
+                status_code=400,
+                detail="Component is not a cron"
+            )
+
+        # Buscar cluster_instance relacionado
+        cluster_instance = (
+            db.query(ClusterInstanceModel.ClusterInstance)
+            .filter(ClusterInstanceModel.ClusterInstance.application_component_id == db_cron.id)
+            .first()
+        )
+
+        if not cluster_instance:
+            raise HTTPException(
+                status_code=404,
+                detail="Cron is not deployed to any cluster"
+            )
+
+        cluster = cluster_instance.cluster
+        application_name = db_cron.instance.application.name
+
+        # Criar cliente Kubernetes
+        k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+
+        # Buscar pods do Job usando label selector job-name
+        # Jobs criam pods com label job-name=<job-name>
+        label_selector = f"job-name={job_name}"
+        pods = k8s_client.list_pods(namespace=application_name, label_selector=label_selector)
+
+        if not pods:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No pods found for job {job_name}"
+            )
+
+        # Pegar o primeiro pod (geralmente Jobs criam apenas um pod)
+        pod_name = pods[0]['name']
+
+        # Obter logs do pod
+        try:
+            logs = k8s_client.get_pod_logs(
+                namespace=application_name,
+                pod_name=pod_name,
+                container_name=container_name,
+                tail_lines=tail_lines
+            )
+            return {"logs": logs, "pod_name": pod_name, "job_name": job_name, "container_name": container_name}
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to get logs for job {job_name}: {str(e)}"
+            )
+
+    @staticmethod
     def delete_cron(db: Session, uuid: UUID):
         # Buscar o componente com relacionamentos
         db_cron = (

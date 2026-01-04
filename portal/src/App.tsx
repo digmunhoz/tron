@@ -12,6 +12,7 @@ import CreateApplication from './pages/applications/CreateApplication'
 import CreateInstance from './pages/applications/CreateInstance'
 import InstanceDetail from './pages/applications/InstanceDetail'
 import WebappDetail from './pages/applications/WebappDetail'
+import CronDetail from './pages/applications/CronDetail'
 import Templates from './pages/templates/Templates'
 import Profile from './pages/Profile'
 import Users from './pages/users/Users'
@@ -31,6 +32,7 @@ function App() {
           <Route path="applications/:uuid/instances/new" element={<ProtectedRoute><CreateInstance /></ProtectedRoute>} />
           <Route path="applications/:uuid/instances/:instanceUuid/components" element={<ProtectedRoute><InstanceDetail /></ProtectedRoute>} />
           <Route path="applications/:uuid/instances/:instanceUuid/components/:componentUuid" element={<ProtectedRoute><WebappDetail /></ProtectedRoute>} />
+          <Route path="applications/:uuid/instances/:instanceUuid/components/:componentUuid/executions" element={<ProtectedRoute><CronDetail /></ProtectedRoute>} />
           <Route path="templates" element={<ProtectedRoute><AdminRoute><Templates /></AdminRoute></ProtectedRoute>} />
           <Route path="users" element={<ProtectedRoute><AdminRoute><Users /></AdminRoute></ProtectedRoute>} />
           <Route path="tokens" element={<ProtectedRoute><AdminRoute><Tokens /></AdminRoute></ProtectedRoute>} />

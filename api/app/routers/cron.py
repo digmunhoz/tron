@@ -57,3 +57,30 @@ def delete_cron(
 ):
     return CronService.delete_cron(db=db, uuid=uuid)
 
+
+@router.get("/{uuid}/jobs", response_model=list[CronSchemas.CronJob])
+def get_cron_jobs(
+    uuid: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return CronService.get_cron_jobs(db=db, uuid=uuid)
+
+
+@router.get("/{uuid}/jobs/{job_name}/logs", response_model=CronSchemas.CronJobLogs)
+def get_cron_job_logs(
+    uuid: UUID,
+    job_name: str,
+    container_name: str = None,
+    tail_lines: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return CronService.get_cron_job_logs(
+        db=db,
+        uuid=uuid,
+        job_name=job_name,
+        container_name=container_name,
+        tail_lines=tail_lines
+    )
+

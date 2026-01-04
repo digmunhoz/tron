@@ -470,6 +470,97 @@ class K8sClient:
             print(f"Erro ao listar pods: {e}")
             return []
 
+    def list_jobs(self, namespace: str, label_selector: str = None):
+        """
+        Lista Jobs de um namespace, opcionalmente filtrados por label selector.
+        Usado para listar Jobs criados por CronJobs.
+
+        Args:
+            namespace: Nome do namespace
+            label_selector: Seletor de labels (ex: "app=myapp")
+
+        Returns:
+            Lista de jobs com informações formatadas
+        """
+        try:
+            batch_v1 = client.BatchV1Api(self.api_client)
+
+            if label_selector:
+                jobs = batch_v1.list_namespaced_job(namespace=namespace, label_selector=label_selector).items
+            else:
+                jobs = batch_v1.list_namespaced_job(namespace=namespace).items
+
+            # Formatar dados dos jobs
+            formatted_jobs = []
+            for job in jobs:
+                # Status do job
+                status = "Unknown"
+                if job.status.succeeded:
+                    status = "Succeeded"
+                elif job.status.failed:
+                    status = "Failed"
+                elif job.status.active:
+                    status = "Active"
+                elif job.status.conditions:
+                    # Verificar condições para status mais específico
+                    for condition in job.status.conditions:
+                        if condition.type == "Complete" and condition.status == "True":
+                            status = "Succeeded"
+                            break
+                        elif condition.type == "Failed" and condition.status == "True":
+                            status = "Failed"
+                            break
+
+                # Contagem de sucessos e falhas
+                succeeded = job.status.succeeded if job.status.succeeded else 0
+                failed = job.status.failed if job.status.failed else 0
+                active = job.status.active if job.status.active else 0
+
+                # Start time
+                start_time = None
+                if job.status.start_time:
+                    start_time = job.status.start_time.isoformat()
+
+                # Completion time
+                completion_time = None
+                if job.status.completion_time:
+                    completion_time = job.status.completion_time.isoformat()
+
+                # Age (tempo desde a criação)
+                age_seconds = 0
+                if job.metadata.creation_timestamp:
+                    from datetime import datetime, timezone
+                    now = datetime.now(timezone.utc)
+                    age_seconds = int((now - job.metadata.creation_timestamp).total_seconds())
+
+                # Duração (se completado)
+                duration_seconds = None
+                if start_time and completion_time:
+                    from datetime import datetime
+                    start = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                    completion = datetime.fromisoformat(completion_time.replace('Z', '+00:00'))
+                    duration_seconds = int((completion - start).total_seconds())
+
+                formatted_jobs.append({
+                    "name": job.metadata.name,
+                    "status": status,
+                    "succeeded": succeeded,
+                    "failed": failed,
+                    "active": active,
+                    "start_time": start_time,
+                    "completion_time": completion_time,
+                    "age_seconds": age_seconds,
+                    "duration_seconds": duration_seconds,
+                })
+
+            # Ordenar por criação (mais recente primeiro)
+            formatted_jobs.sort(key=lambda x: x["age_seconds"], reverse=False)
+
+            return formatted_jobs
+        except ApiException as e:
+            print(f"Erro ao listar jobs: {e}")
+            return []
+
     def _parse_cpu(self, cpu_str: str) -> float:
         """Converte string de CPU (ex: '500m', '1', '0.5') para float."""
         if not cpu_str:

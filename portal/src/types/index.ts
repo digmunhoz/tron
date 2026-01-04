@@ -312,3 +312,22 @@ export interface ApiTokenCreateResponse {
   created_at: string
 }
 
+export interface CronJob {
+  name: string
+  status: string  // Succeeded, Failed, Active, Unknown
+  succeeded: number
+  failed: number
+  active: number
+  start_time: string | null
+  completion_time: string | null
+  age_seconds: number
+  duration_seconds: number | null
+}
+
+export interface CronJobLogs {
+  logs: string
+  pod_name: string
+  job_name: string
+  container_name: string | null
+}
+
