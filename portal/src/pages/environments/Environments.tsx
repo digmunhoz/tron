@@ -4,6 +4,7 @@ import { X, Trash2, Plus, Globe } from 'lucide-react'
 import { environmentsApi } from '../../services/api'
 import type { Environment, EnvironmentCreate } from '../../types'
 import DataTable from '../../components/DataTable'
+import { Breadcrumbs } from '../../components/Breadcrumbs'
 
 function Environments() {
   const [isOpen, setIsOpen] = useState(false)
@@ -71,33 +72,17 @@ function Environments() {
 
   return (
     <div className="space-y-6">
-      {notification && (
-        <div
-          className={`p-4 rounded-lg shadow-soft border ${
-            notification.type === 'success'
-              ? 'bg-green-50/80 text-green-700 border-green-200/60'
-              : 'bg-red-50/80 text-red-700 border-red-200/60'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">{notification.message}</span>
-            <button onClick={() => setNotification(null)} className="hover:opacity-60 transition-opacity">
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-      )}
+      <Breadcrumbs
+        items={[
+          { label: 'Home', path: '/' },
+          { label: 'Environments', path: '/environments' },
+        ]}
+      />
 
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Globe className="text-blue-600" size={22} />
-            </div>
-            <h1 className="text-3xl font-semibold text-slate-800">Environments</h1>
-          </div>
-          <p className="text-slate-500 ml-12">Gerenciar environments</p>
+        <div>
+          <h1 className="text-3xl font-bold text-gradient">Environments</h1>
+          <p className="text-neutral-600 mt-1">Gerenciar environments</p>
         </div>
         <button
           onClick={() => {

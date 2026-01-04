@@ -4,6 +4,7 @@ import { X, Trash2, Plus, Cloud, Info, Edit } from 'lucide-react'
 import { clustersApi, environmentsApi } from '../../services/api'
 import type { Cluster, ClusterCreate } from '../../types'
 import DataTable from '../../components/DataTable'
+import { Breadcrumbs } from '../../components/Breadcrumbs'
 
 function Clusters() {
   const [isOpen, setIsOpen] = useState(false)
@@ -165,33 +166,17 @@ function Clusters() {
 
   return (
     <div className="space-y-6">
-      {notification && (
-        <div
-          className={`p-4 rounded-lg shadow-soft border ${
-            notification.type === 'success'
-              ? 'bg-green-50/80 text-green-700 border-green-200/60'
-              : 'bg-red-50/80 text-red-700 border-red-200/60'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">{notification.message}</span>
-            <button onClick={() => setNotification(null)} className="hover:opacity-60 transition-opacity">
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-      )}
+      <Breadcrumbs
+        items={[
+          { label: 'Home', path: '/' },
+          { label: 'Clusters', path: '/clusters' },
+        ]}
+      />
 
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Cloud className="text-blue-600" size={22} />
-            </div>
-            <h1 className="text-3xl font-semibold text-slate-800">Clusters</h1>
-          </div>
-          <p className="text-slate-500 ml-12">Gerenciar clusters Kubernetes</p>
+        <div>
+          <h1 className="text-3xl font-bold text-gradient">Clusters</h1>
+          <p className="text-neutral-600 mt-1">Gerenciar clusters Kubernetes</p>
         </div>
         <button
           onClick={() => {
@@ -199,12 +184,27 @@ function Clusters() {
             setFormData({ name: '', api_address: '', token: '', environment_uuid: '' })
             setIsOpen(true)
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-soft hover:shadow-soft-lg transition-all duration-200 text-sm font-medium"
+          className="btn-primary flex items-center gap-2"
         >
           <Plus size={18} />
-          Novo Cluster
+          <span>Novo Cluster</span>
         </button>
       </div>
+
+      {notification && (
+        <div
+          className={`rounded-lg p-4 flex items-center justify-between ${
+            notification.type === 'success'
+              ? 'bg-success/10 border border-success/20 text-success'
+              : 'bg-error/10 border border-error/20 text-error'
+          }`}
+        >
+          <span>{notification.message}</span>
+          <button onClick={() => setNotification(null)}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Table */}
       <DataTable<Cluster>

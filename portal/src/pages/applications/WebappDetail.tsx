@@ -177,6 +177,7 @@ function WebappDetail() {
     <div className="space-y-6">
       <Breadcrumbs
         items={[
+          { label: 'Home', path: '/' },
           { label: 'Applications', path: '/applications' },
           { label: application?.name || 'Application' },
           { label: instance?.environment.name || 'Environment', path: `/applications/${applicationUuid}/instances/${instanceUuid}/components` },
@@ -187,23 +188,23 @@ function WebappDetail() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">{component?.name || 'Webapp Detail'}</h1>
-          <p className="text-slate-600">Pods running in Kubernetes</p>
+          <h1 className="text-3xl font-bold text-gradient">{component?.name || 'Detalhes do Webapp'}</h1>
+          <p className="text-neutral-600 mt-1">Pods em execução no Kubernetes</p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <span>Refresh:</span>
+          <label className="flex items-center gap-2 text-sm text-neutral-700">
+            <span>Atualizar:</span>
             <select
               value={refreshInterval}
               onChange={(e) => setRefreshInterval(Number(e.target.value))}
-              className="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="input pr-10"
             >
-              <option value={0}>Disabled</option>
-              <option value={2000}>2 seconds</option>
-              <option value={5000}>5 seconds</option>
-              <option value={10000}>10 seconds</option>
-              <option value={30000}>30 seconds</option>
-              <option value={60000}>1 minute</option>
+              <option value={0}>Desabilitado</option>
+              <option value={2000}>2 segundos</option>
+              <option value={5000}>5 segundos</option>
+              <option value={10000}>10 segundos</option>
+              <option value={30000}>30 segundos</option>
+              <option value={60000}>1 minuto</option>
             </select>
           </label>
         </div>
@@ -215,23 +216,23 @@ function WebappDetail() {
             key: 'name',
             label: 'Name',
             render: (pod) => (
-              <div className="text-sm font-medium text-slate-800">{pod.name}</div>
+              <div className="text-sm font-medium text-neutral-900">{pod.name}</div>
             ),
           },
           {
             key: 'status',
             label: 'Status',
             render: (pod) => {
-              const statusColors: Record<string, { bg: string; text: string }> = {
-                Running: { bg: 'bg-green-100', text: 'text-green-800' },
-                Pending: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-                Succeeded: { bg: 'bg-blue-100', text: 'text-blue-800' },
-                Failed: { bg: 'bg-red-100', text: 'text-red-800' },
-                Unknown: { bg: 'bg-slate-100', text: 'text-slate-800' },
+              const statusClasses: Record<string, string> = {
+                Running: 'badge-success',
+                Pending: 'badge-warning',
+                Succeeded: 'badge-info',
+                Failed: 'badge-error',
+                Unknown: 'badge bg-neutral-100 text-neutral-800 border-neutral-200',
               }
-              const colors = statusColors[pod.status] || statusColors.Unknown
+              const badgeClass = statusClasses[pod.status] || statusClasses.Unknown
               return (
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>
+                <span className={badgeClass}>
                   {pod.status}
                 </span>
               )
@@ -241,21 +242,21 @@ function WebappDetail() {
             key: 'restarts',
             label: 'Restarts',
             render: (pod) => (
-              <div className="text-sm text-slate-600">{pod.restarts}</div>
+              <div className="text-sm text-neutral-700">{pod.restarts}</div>
             ),
           },
           {
             key: 'node',
             label: 'Node',
             render: (pod) => (
-              <div className="text-sm text-slate-600">{pod.host_ip || '-'}</div>
+              <div className="text-sm text-neutral-700">{pod.host_ip || '-'}</div>
             ),
           },
           {
             key: 'cpu',
             label: 'CPU R/L',
             render: (pod) => (
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-neutral-700">
                 {pod.cpu_requests > 0 || pod.cpu_limits > 0
                   ? `${pod.cpu_requests.toFixed(2)} / ${pod.cpu_limits.toFixed(2)}`
                   : '-'}
@@ -266,7 +267,7 @@ function WebappDetail() {
             key: 'memory',
             label: 'Mem R/L',
             render: (pod) => (
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-neutral-700">
                 {pod.memory_requests > 0 || pod.memory_limits > 0
                   ? `${pod.memory_requests >= 1024 ? `${(pod.memory_requests / 1024).toFixed(1)}` : pod.memory_requests}${pod.memory_requests >= 1024 ? 'GB' : 'MB'} / ${pod.memory_limits >= 1024 ? `${(pod.memory_limits / 1024).toFixed(1)}` : pod.memory_limits}${pod.memory_limits >= 1024 ? 'GB' : 'MB'}`
                   : '-'}
@@ -277,7 +278,7 @@ function WebappDetail() {
             key: 'age',
             label: 'Age',
             render: (pod) => (
-              <div className="text-sm text-slate-600">{formatAge(pod.age_seconds)}</div>
+              <div className="text-sm text-neutral-700">{formatAge(pod.age_seconds)}</div>
             ),
           },
         ]}
@@ -325,10 +326,10 @@ function WebappDetail() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200">
               <div className="flex-1">
-                <h2 className="text-xl font-semibold text-slate-900">Pod Logs</h2>
-                <p className="text-sm text-slate-600 mt-1">{selectedPod}</p>
+                <h2 className="text-xl font-semibold text-neutral-900">Pod Logs</h2>
+                <p className="text-sm text-neutral-600 mt-1">{selectedPod}</p>
               </div>
               <div className="flex items-center gap-4">
                 {/* Toggle Live Tail */}
@@ -337,9 +338,9 @@ function WebappDetail() {
                     type="checkbox"
                     checked={isLiveTail}
                     onChange={(e) => setIsLiveTail(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500 focus:ring-2"
+                    className="w-4 h-4 text-primary-600 bg-neutral-100 border-neutral-300 rounded focus:ring-primary-500 focus:ring-2"
                   />
-                  <span className="text-sm font-medium text-slate-700">Live Tail</span>
+                  <span className="text-sm font-medium text-neutral-700">Live Tail</span>
                 </label>
                 <button
                   onClick={() => {
@@ -347,9 +348,9 @@ function WebappDetail() {
                     setSelectedPod(null)
                     setIsLiveTail(true) // Reset para true quando fechar
                   }}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
                 >
-                  <X size={20} className="text-slate-600" />
+                  <X size={20} className="text-neutral-600" />
                 </button>
               </div>
             </div>

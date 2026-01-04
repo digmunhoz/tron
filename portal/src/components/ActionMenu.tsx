@@ -7,7 +7,7 @@ export interface ActionMenuItem {
   label: string
   icon?: ReactNode
   onClick: () => void
-  variant?: 'default' | 'danger'
+  variant?: 'default' | 'danger' | 'warning'
 }
 
 interface ActionMenuProps {
@@ -95,6 +95,8 @@ function ActionMenu({ items }: ActionMenuProps) {
             ${
               item.variant === 'danger'
                 ? 'text-red-600 hover:bg-red-50/50'
+                : item.variant === 'warning'
+                ? 'text-amber-600 hover:bg-amber-50/50'
                 : 'text-slate-700 hover:bg-slate-50'
             }
           `}

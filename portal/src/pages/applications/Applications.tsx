@@ -62,25 +62,24 @@ function Applications() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs items={[{ label: 'Applications' }]} />
+      <Breadcrumbs
+        items={[
+          { label: 'Home', path: '/' },
+          { label: 'Applications', path: '/applications' },
+        ]}
+      />
 
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <AppWindow className="text-blue-600" size={22} />
-            </div>
-            <h1 className="text-3xl font-semibold text-slate-800">Applications</h1>
-          </div>
-          <p className="text-slate-500 ml-12">Manage applications</p>
+        <div>
+          <h1 className="text-3xl font-bold text-gradient">Applications</h1>
+          <p className="text-neutral-600 mt-1">Gerenciar aplicações</p>
         </div>
         <button
           onClick={() => navigate('/applications/new')}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-soft hover:shadow-soft-lg transition-all duration-200 text-sm font-medium"
+          className="btn-primary flex items-center gap-2"
         >
           <Plus size={18} />
-          New Application
+          <span>Nova Aplicação</span>
         </button>
       </div>
 

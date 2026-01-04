@@ -35,6 +35,7 @@ setup-dev-cluster:
 
 load-fixtures:
 	@docker compose -f docker/docker-compose.yaml run --rm api sh -c 'python scripts/load_initial_templates.py'
+	@docker compose -f docker/docker-compose.yaml run --rm api sh -c 'python scripts/load_initial_user.py'
 
 reset-migrations:
 	@docker compose -f docker/docker-compose.yaml run --rm api sh -c 'python scripts/reset_alembic_history.py'

@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import {
   Home,
@@ -7,10 +7,16 @@ import {
   AppWindow,
   Menu,
   X,
-  Sparkles,
   Shield,
   FileCode,
+  LogOut,
+  User,
+  Settings,
+  Users,
+  Key,
 } from 'lucide-react'
+import { Logo } from './Logo'
+import { useAuth } from '../contexts/AuthContext'
 
 const generalNavItems = [
   { label: 'Home', path: '/', icon: Home },
@@ -21,33 +27,59 @@ const adminNavItems = [
   { label: 'Clusters', path: '/clusters', icon: Cloud },
   { label: 'Environments', path: '/environments', icon: Globe },
   { label: 'Templates', path: '/templates', icon: FileCode },
+  { label: 'Users', path: '/users', icon: Users },
+  { label: 'Tokens', path: '/tokens', icon: Key },
 ]
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-50">
+      <header className="glass-effect-strong sticky top-0 z-50 border-b border-neutral-200/80">
         <div className="flex items-center justify-between px-4 py-3 md:px-8">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
+              className="md:hidden p-2 rounded-lg text-neutral-600 hover:bg-neutral-100 transition-colors"
             >
               {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="p-1.5 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
-                <Sparkles className="text-blue-600" size={20} />
-              </div>
-              <span className="text-xl font-semibold text-slate-800 tracking-tight">
-                Tron
-              </span>
-            </Link>
+            <Logo />
           </div>
+          {user && (
+            <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2 text-sm text-neutral-600">
+                <User size={16} />
+                <span>{user.full_name || user.email}</span>
+              </div>
+              <button
+                onClick={() => navigate('/profile')}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neutral-600 hover:bg-neutral-100 transition-colors"
+                title="Perfil"
+              >
+                <Settings size={16} />
+                <span className="hidden md:inline">Perfil</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neutral-600 hover:bg-neutral-100 transition-colors"
+                title="Sair"
+              >
+                <LogOut size={16} />
+                <span className="hidden md:inline">Sair</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -56,7 +88,7 @@ function Layout() {
         <aside
           className={`
             fixed md:static inset-y-0 left-0 z-40
-            w-64 bg-white/95 backdrop-blur-sm border-r border-slate-200/60
+            w-64 glass-effect-strong border-r border-neutral-200/80
             transform transition-transform duration-300 ease-in-out
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
             pt-16 md:pt-0
@@ -65,7 +97,7 @@ function Layout() {
           <nav className="p-4 space-y-6">
             {/* Menu Geral */}
             <div>
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 {generalNavItems.map((item) => {
                   const Icon = item.icon
                   const isActive = location.pathname === item.path
@@ -75,16 +107,16 @@ function Layout() {
                         to={item.path}
                         onClick={() => setSidebarOpen(false)}
                         className={`
-                          flex items-center gap-3 px-3 py-2.5 rounded-lg
+                          flex items-center gap-3 px-3 py-2.5 rounded-xl
                           transition-all duration-200
                           ${
                             isActive
-                              ? 'bg-blue-50 text-blue-700 font-medium'
-                              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                              ? 'bg-gradient-primary text-white shadow-soft font-medium'
+                              : 'text-neutral-600 hover:bg-neutral-50 hover:text-primary-600'
                           }
                         `}
                       >
-                        <Icon size={18} />
+                        <Icon size={18} className={isActive ? 'text-white' : ''} />
                         <span className="text-sm">{item.label}</span>
                       </Link>
                     </li>
@@ -93,48 +125,50 @@ function Layout() {
               </ul>
             </div>
 
-            {/* Menu Administrativo */}
-            <div>
-              <div className="flex items-center gap-2 px-3 mb-2">
-                <Shield size={16} className="text-slate-400" />
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Administrative
-                </span>
+            {/* Menu Administrativo - Apenas para admins */}
+            {user?.role === 'admin' && (
+              <div>
+                <div className="flex items-center gap-2 px-3 mb-3">
+                  <Shield size={16} className="text-neutral-400" />
+                  <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                    Administrative
+                  </span>
+                </div>
+                <ul className="space-y-1.5">
+                  {adminNavItems.map((item) => {
+                    const Icon = item.icon
+                    const isActive = location.pathname === item.path
+                    return (
+                      <li key={item.path}>
+                        <Link
+                          to={item.path}
+                          onClick={() => setSidebarOpen(false)}
+                          className={`
+                            flex items-center gap-3 px-3 py-2.5 rounded-xl
+                            transition-all duration-200
+                            ${
+                              isActive
+                                ? 'bg-gradient-primary text-white shadow-soft font-medium'
+                                : 'text-neutral-600 hover:bg-neutral-50 hover:text-primary-600'
+                            }
+                          `}
+                        >
+                          <Icon size={18} className={isActive ? 'text-white' : ''} />
+                          <span className="text-sm">{item.label}</span>
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
               </div>
-            <ul className="space-y-1">
-                {adminNavItems.map((item) => {
-                const Icon = item.icon
-                const isActive = location.pathname === item.path
-                return (
-                  <li key={item.path}>
-                    <Link
-                      to={item.path}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`
-                        flex items-center gap-3 px-3 py-2.5 rounded-lg
-                        transition-all duration-200
-                        ${
-                          isActive
-                            ? 'bg-blue-50 text-blue-700 font-medium'
-                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                        }
-                      `}
-                    >
-                      <Icon size={18} />
-                      <span className="text-sm">{item.label}</span>
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-            </div>
+            )}
           </nav>
         </aside>
 
         {/* Overlay para mobile */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 md:hidden"
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -148,14 +182,14 @@ function Layout() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-white/80 backdrop-blur-md border-t border-slate-200/60 mt-auto">
+      <footer className="glass-effect-strong border-t border-neutral-200/80 mt-auto">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Sparkles className="text-blue-600" size={16} />
+            <div className="flex items-center gap-2 text-sm text-neutral-600">
+              <div className="w-4 h-4 bg-gradient-primary rounded"></div>
               <span>© {new Date().getFullYear()} Tron Platform. Todos os direitos reservados.</span>
             </div>
-            <div className="flex items-center gap-4 text-sm text-slate-500">
+            <div className="flex items-center gap-4 text-sm text-neutral-500">
               <span>Versão 1.0.0</span>
               <span className="hidden md:inline">•</span>
               <span>Platform as a Service</span>

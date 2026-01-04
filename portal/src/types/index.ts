@@ -236,3 +236,79 @@ export interface PodCommandResponse {
   return_code: number
 }
 
+// Auth types
+export type UserRole = 'admin' | 'user' | 'viewer'
+
+export interface User {
+  uuid: string
+  email: string
+  full_name: string | null
+  is_active: boolean
+  role: UserRole
+  avatar_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface UserCreate {
+  email: string
+  password: string
+  full_name?: string | null
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface Token {
+  access_token: string
+  refresh_token: string
+  token_type: string
+}
+
+export interface RefreshTokenRequest {
+  refresh_token: string
+}
+
+export interface UpdateProfileRequest {
+  email?: string | null
+  full_name?: string | null
+  password?: string | null
+  current_password?: string | null
+}
+
+export interface ApiToken {
+  uuid: string
+  name: string
+  role: UserRole
+  is_active: boolean
+  last_used_at: string | null
+  expires_at: string | null
+  created_at: string
+  updated_at: string
+  user_id: number | null
+}
+
+export interface ApiTokenCreate {
+  name: string
+  role: UserRole
+  expires_at?: string | null
+}
+
+export interface ApiTokenUpdate {
+  name?: string | null
+  role?: UserRole | null
+  is_active?: boolean | null
+  expires_at?: string | null
+}
+
+export interface ApiTokenCreateResponse {
+  uuid: string
+  name: string
+  token: string
+  role: UserRole
+  expires_at: string | null
+  created_at: string
+}
+

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Trash2, Plus, Pencil, ChevronDown, ChevronRight, Eye } from 'lucide-react'
+import { X, Trash2, Plus, Pencil, ChevronDown, ChevronRight, Server } from 'lucide-react'
 import { applicationComponentsApi, instancesApi, applicationsApi } from '../../services/api'
 import type { ApplicationComponentCreate, InstanceComponent } from '../../types'
 import { ComponentForm, type ComponentFormData, getDefaultWebappSettings } from '../../components/applications'
@@ -327,6 +327,7 @@ function InstanceDetail() {
     <div className="space-y-6">
       <Breadcrumbs
         items={[
+          { label: 'Home', path: '/' },
           { label: 'Applications', path: '/applications' },
           { label: application?.name || 'Application' },
           { label: instance.environment.name, path: `/applications/${applicationUuid}/instances/${instanceUuid}/components` },
@@ -334,55 +335,48 @@ function InstanceDetail() {
         ]}
       />
 
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 mb-2">Components</h1>
-              <div className="flex items-center gap-4 text-sm text-slate-600">
-                <div>
-                  <span className="font-medium">Application:</span> {application?.name || 'N/A'}
-                </div>
-                <div>
-                  <span className="font-medium">Environment:</span> {instance.environment.name}
-                </div>
-                <div>
-                  <span className="font-medium">Image:</span> {instance.image}:{instance.version}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={openEditInstanceModal}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 shadow-soft hover:shadow-soft-lg transition-all duration-200 text-sm font-medium"
-              >
-                <Pencil size={18} />
-                Edit Instance
-              </button>
-              <button
-                onClick={() => {
-                  initializeComponent()
-                  setIsAddComponentsModalOpen(true)
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-soft hover:shadow-soft-lg transition-all duration-200 text-sm font-medium"
-              >
-                <Plus size={18} />
-                Add Component
-              </button>
-            </div>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gradient">Components</h1>
+          <p className="text-neutral-600 mt-1">
+            {application?.name || 'Application'} • {instance.environment.name} • {instance.image}:{instance.version}
+          </p>
         </div>
-
-        {/* Notification */}
-        {notification && (
-          <div
-            className={`mb-6 p-4 rounded-lg ${
-              notification.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-            }`}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={openEditInstanceModal}
+            className="btn-secondary flex items-center gap-2"
           >
-            {notification.message}
-          </div>
-        )}
+            <Pencil size={18} />
+            <span>Editar Instância</span>
+          </button>
+          <button
+            onClick={() => {
+              initializeComponent()
+              setIsAddComponentsModalOpen(true)
+            }}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus size={18} />
+            <span>Adicionar Componente</span>
+          </button>
+        </div>
+      </div>
+
+      {notification && (
+        <div
+          className={`rounded-lg p-4 flex items-center justify-between ${
+            notification.type === 'success'
+              ? 'bg-success/10 border border-success/20 text-success'
+              : 'bg-error/10 border border-error/20 text-error'
+          }`}
+        >
+          <span>{notification.message}</span>
+          <button onClick={() => setNotification(null)}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
         {/* Components by Type */}
         <div className="space-y-4">
@@ -422,11 +416,11 @@ function InstanceDetail() {
                       actions={(component) => {
                         const actions = []
 
-                        // Adicionar "View" apenas para webapp
+                        // Adicionar "PODs" apenas para webapp
                         if (type === 'webapp') {
                           actions.push({
-                            label: 'View',
-                            icon: <Eye size={14} />,
+                            label: 'PODs',
+                            icon: <Server size={14} />,
                             onClick: () => navigate(`/applications/${applicationUuid}/instances/${instanceUuid}/components/${component.uuid}`),
                             variant: 'default' as const,
                           })

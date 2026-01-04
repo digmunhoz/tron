@@ -14,7 +14,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
   if (items.length === 0) return null
 
   return (
-    <nav className="flex items-center gap-2 text-sm text-slate-600 mb-4">
+    <nav className="flex items-center gap-2 text-sm text-neutral-600 mb-6">
       {items.map((item, index) => {
         const isLast = index === items.length - 1
         const isClickable = item.path && !isLast
@@ -24,17 +24,17 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
             {isClickable ? (
               <Link
                 to={item.path!}
-                className="hover:text-slate-900 transition-colors"
+                className="hover:text-primary-600 transition-colors font-medium"
               >
                 {item.label}
               </Link>
             ) : (
-              <span className={isLast ? 'text-slate-900 font-medium' : ''}>
+              <span className={isLast ? 'text-neutral-900 font-semibold' : 'text-neutral-500'}>
                 {item.label}
               </span>
             )}
             {!isLast && (
-              <ChevronRight size={16} className="text-slate-400" />
+              <ChevronRight size={16} className="text-neutral-400" />
             )}
           </div>
         )

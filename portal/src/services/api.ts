@@ -23,6 +23,16 @@ import type {
   ApplicationComponentCreate,
   Instance,
   InstanceCreate,
+  User,
+  UserCreate,
+  LoginRequest,
+  Token,
+  RefreshTokenRequest,
+  UpdateProfileRequest,
+  ApiToken,
+  ApiTokenCreate,
+  ApiTokenUpdate,
+  ApiTokenCreateResponse,
 } from '../types'
 
 const api = axios.create({
@@ -31,6 +41,62 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 })
+
+// Interceptor para adicionar token em todas as requisições
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Interceptor para refresh automático de token
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config
+
+    // Não tentar refresh em endpoints de autenticação (login, register, refresh)
+    // Um 401 nesses endpoints significa credenciais inválidas, não token expirado
+    const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') ||
+                          originalRequest?.url?.includes('/auth/register') ||
+                          originalRequest?.url?.includes('/auth/refresh')
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      originalRequest._retry = true
+
+      try {
+        const refreshToken = localStorage.getItem('refresh_token')
+        if (!refreshToken) {
+          throw new Error('No refresh token')
+        }
+
+        const response = await axios.post<Token>(`${API_BASE_URL}/auth/refresh`, {
+          refresh_token: refreshToken,
+        })
+
+        const { access_token } = response.data
+        localStorage.setItem('access_token', access_token)
+        originalRequest.headers.Authorization = `Bearer ${access_token}`
+
+        return api(originalRequest)
+      } catch (refreshError) {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        window.location.href = '/login'
+        return Promise.reject(refreshError)
+      }
+    }
+
+    return Promise.reject(error)
+  }
+)
 
 // Clusters
 export const clustersApi = {
@@ -292,6 +358,76 @@ export const instancesApi = {
   },
   delete: async (uuid: string): Promise<void> => {
     await api.delete(`/instances/${uuid}`)
+  },
+}
+
+// Auth
+export const authApi = {
+  login: async (data: LoginRequest): Promise<Token> => {
+    const response = await api.post<Token>('/auth/login', data)
+    return response.data
+  },
+  register: async (data: UserCreate): Promise<User> => {
+    const response = await api.post<User>('/auth/register', data)
+    return response.data
+  },
+  refresh: async (data: RefreshTokenRequest): Promise<Token> => {
+    const response = await api.post<Token>('/auth/refresh', data)
+    return response.data
+  },
+  getMe: async (): Promise<User> => {
+    const response = await api.get<User>('/auth/me')
+    return response.data
+  },
+  updateProfile: async (data: UpdateProfileRequest): Promise<User> => {
+    const response = await api.put<User>('/auth/me', data)
+    return response.data
+  },
+}
+
+// Users API (Admin only)
+export const usersApi = {
+  list: async (params?: { skip?: number; limit?: number; search?: string }): Promise<User[]> => {
+    const response = await api.get<User[]>('/users', { params })
+    return response.data
+  },
+  get: async (uuid: string): Promise<User> => {
+    const response = await api.get<User>(`/users/${uuid}`)
+    return response.data
+  },
+  create: async (data: UserCreate): Promise<User> => {
+    const response = await api.post<User>('/users', data)
+    return response.data
+  },
+  update: async (uuid: string, data: Partial<UserCreate & { is_active?: boolean; role?: string }>): Promise<User> => {
+    const response = await api.put<User>(`/users/${uuid}`, data)
+    return response.data
+  },
+  delete: async (uuid: string): Promise<void> => {
+    await api.delete(`/users/${uuid}`)
+  },
+}
+
+// Tokens API (Admin only)
+export const tokensApi = {
+  list: async (params?: { skip?: number; limit?: number; search?: string }): Promise<ApiToken[]> => {
+    const response = await api.get<ApiToken[]>('/tokens', { params })
+    return response.data
+  },
+  get: async (uuid: string): Promise<ApiToken> => {
+    const response = await api.get<ApiToken>(`/tokens/${uuid}`)
+    return response.data
+  },
+  create: async (data: ApiTokenCreate): Promise<ApiTokenCreateResponse> => {
+    const response = await api.post<ApiTokenCreateResponse>('/tokens', data)
+    return response.data
+  },
+  update: async (uuid: string, data: ApiTokenUpdate): Promise<ApiToken> => {
+    const response = await api.put<ApiToken>(`/tokens/${uuid}`, data)
+    return response.data
+  },
+  delete: async (uuid: string): Promise<void> => {
+    await api.delete(`/tokens/${uuid}`)
   },
 }
 

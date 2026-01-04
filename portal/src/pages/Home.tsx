@@ -7,16 +7,23 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { clustersApi, environmentsApi, applicationsApi } from '../services/api'
+import { Breadcrumbs } from '../components/Breadcrumbs'
+import { useAuth } from '../contexts/AuthContext'
 
 function Home() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+
   const { data: clusters = [] } = useQuery({
     queryKey: ['clusters'],
     queryFn: clustersApi.list,
+    enabled: isAdmin, // Só busca se for admin
   })
 
   const { data: environments = [] } = useQuery({
     queryKey: ['environments'],
     queryFn: environmentsApi.list,
+    enabled: isAdmin, // Só busca se for admin
   })
 
   const { data: applications = [] } = useQuery({
@@ -25,29 +32,31 @@ function Home() {
   })
 
   const stats = [
-    {
-      label: 'Clusters',
-      value: clusters.length,
-      icon: Cloud,
-      path: '/clusters',
-      bgColor: 'bg-blue-50',
-      iconColor: 'text-blue-600',
-      borderColor: 'border-blue-100'
-    },
-    {
-      label: 'Environments',
-      value: environments.length,
-      icon: Globe,
-      path: '/environments',
-      bgColor: 'bg-indigo-50',
-      iconColor: 'text-indigo-600',
-      borderColor: 'border-indigo-100'
-    },
+    ...(isAdmin ? [
+      {
+        label: 'Clusters',
+        value: clusters.length,
+        icon: Cloud,
+        path: '/clusters',
+        bgColor: 'bg-blue-50',
+        iconColor: 'text-blue-600',
+        borderColor: 'border-blue-100'
+      },
+      {
+        label: 'Environments',
+        value: environments.length,
+        icon: Globe,
+        path: '/environments',
+        bgColor: 'bg-indigo-50',
+        iconColor: 'text-indigo-600',
+        borderColor: 'border-indigo-100'
+      },
+    ] : []),
     {
       label: 'Applications',
       value: applications.length,
       icon: AppWindow,
-      path: '/webapps',
+      path: '/applications',
       bgColor: 'bg-purple-50',
       iconColor: 'text-purple-600',
       borderColor: 'border-purple-100'
@@ -57,15 +66,16 @@ function Home() {
   const totalItems = stats.reduce((sum, stat) => sum + stat.value, 0)
 
   return (
-    <div className="space-y-8">
-      {/* Header Section */}
-      <div className="space-y-2">
-        <h1 className="text-4xl md:text-5xl font-semibold text-slate-800">
-          Dashboard
-        </h1>
-        <p className="text-slate-500 text-lg">
-          Visão geral da plataforma Tron
-        </p>
+    <div className="space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: 'Home', path: '/' },
+        ]}
+      />
+
+      <div>
+        <h1 className="text-3xl font-bold text-gradient">Dashboard</h1>
+        <p className="text-neutral-600 mt-1">Visão geral da plataforma Tron</p>
       </div>
 
       {/* Summary Card */}

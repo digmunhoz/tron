@@ -15,6 +15,8 @@ import app.models.template
 import app.models.component_template_config
 import app.models.application
 import app.models.application_components
+import app.models.user
+import app.models.token
 
 Base.metadata.create_all(bind=engine)
 
@@ -34,7 +36,7 @@ CORS_ALLOW_METHODS = [method.strip() for method in CORS_ALLOW_METHODS if method.
 
 CORS_ALLOW_HEADERS = os.getenv(
     "CORS_ALLOW_HEADERS",
-    "Content-Type,Authorization,Accept,Origin,X-Requested-With"
+    "Content-Type,Authorization,Accept,Origin,X-Requested-With,x-tron-token"
 ).split(",")
 CORS_ALLOW_HEADERS = [header.strip() for header in CORS_ALLOW_HEADERS if header.strip()]
 

@@ -2,6 +2,7 @@ from fastapi import HTTPException
 
 import app.models.environment as EnvironmentModel
 import app.models.application_components as ApplicationComponentModel
+import app.models.instance as InstanceModel
 import app.schemas.environment as EnvironmentSchema
 
 from sqlalchemy.orm import Session
@@ -63,7 +64,8 @@ class EnvironmentService:
 
         associated_webapp_deploys = (
             db.query(ApplicationComponentModel.ApplicationComponent)
-            .filter(ApplicationComponentModel.ApplicationComponent.environment_id == db_environment.id)
+            .join(InstanceModel.Instance)
+            .filter(InstanceModel.Instance.environment_id == db_environment.id)
             .all()
         )
         if associated_webapp_deploys:

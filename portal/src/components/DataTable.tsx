@@ -125,31 +125,31 @@ function DataTable<T>({
       return <ArrowUpDown className="h-3 w-3 text-slate-400" />
     }
     return sortDirection === 'asc' ? (
-      <ArrowUp className="h-3 w-3 text-blue-600" />
+      <ArrowUp className="h-3 w-3 text-primary-600" />
     ) : (
-      <ArrowDown className="h-3 w-3 text-blue-600" />
+      <ArrowDown className="h-3 w-3 text-primary-600" />
     )
   }
 
   return (
     <div className="glass-effect rounded-xl shadow-soft overflow-hidden">
       {searchable && (
-        <div className="px-6 py-4 border-b border-slate-200/60 bg-slate-50/50">
+        <div className="px-6 py-4 border-b border-neutral-200/60 bg-gradient-subtle">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-slate-400" />
+              <Search className="h-4 w-4 text-neutral-400" />
             </div>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg bg-white text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 transition-all"
+              className="input pl-10 pr-10"
               placeholder={searchPlaceholder}
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -159,16 +159,16 @@ function DataTable<T>({
       )}
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50/80">
+        <table className="min-w-full divide-y divide-neutral-200">
+          <thead className="bg-gradient-subtle">
             <tr>
               {columns.map((column) => {
                 const isSortable = column.sortable === true
                 return (
                   <th
                     key={String(column.key)}
-                    className={`px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider ${
-                      isSortable ? 'cursor-pointer hover:bg-slate-100/50 transition-colors select-none' : ''
+                    className={`px-6 py-3.5 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider ${
+                      isSortable ? 'cursor-pointer hover:bg-primary-50/50 transition-colors select-none' : ''
                     }`}
                     style={column.width ? { width: column.width } : undefined}
                     onClick={() => isSortable && handleSort(column.key)}
@@ -181,41 +181,41 @@ function DataTable<T>({
                 )
               })}
               {actions && (
-                <th className="px-6 py-3 text-right text-xs font-medium text-slate-600 uppercase tracking-wider">
+                <th className="px-6 py-3.5 text-right text-xs font-semibold text-neutral-700 uppercase tracking-wider">
                   Ações
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-slate-100/60">
+          <tbody className="bg-white divide-y divide-neutral-100">
             {isLoading ? (
               <tr>
-                <td colSpan={colSpan} className="px-6 py-12 text-center text-slate-400">
+                <td colSpan={colSpan} className="px-6 py-12 text-center text-neutral-400">
                   <div className="flex items-center justify-center gap-2">
                     <div className={`animate-spin rounded-full h-5 w-5 border-2 ${spinnerClass}`}></div>
-                    <span className="text-sm">Carregando...</span>
+                    <span className="text-sm text-neutral-600">Carregando...</span>
                   </div>
                 </td>
               </tr>
             ) : filteredData.length === 0 ? (
               <tr>
-                <td colSpan={colSpan} className="px-6 py-12 text-center text-slate-400 text-sm">
+                <td colSpan={colSpan} className="px-6 py-12 text-center text-neutral-400 text-sm">
                   {searchTerm ? 'Nenhum resultado encontrado para a busca' : emptyMessage}
                 </td>
               </tr>
             ) : (
               filteredData.map((item) => (
-                <tr key={getRowKey(item)} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={getRowKey(item)} className="hover:bg-primary-50/30 transition-colors border-b border-neutral-50">
                   {columns.map((column) => (
                     <td
                       key={String(column.key)}
-                      className="px-6 py-3.5 whitespace-nowrap"
+                      className="px-6 py-4 whitespace-nowrap"
                       style={column.width ? { width: column.width } : undefined}
                     >
                       {column.render ? (
                         column.render(item)
                       ) : (
-                        <div className="text-sm text-slate-600">
+                        <div className="text-sm text-neutral-700">
                           {String(item[column.key as keyof T] ?? '')}
                         </div>
                       )}

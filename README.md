@@ -1,148 +1,137 @@
-# PaaS Platform (API)
+# Tron - Platform as a Service
 
-This project is part of a **Platform-as-a-Service (PaaS)**, designed to abstract Kubernetes and underlying infrastructure, simplifying application deployment and management.
+PaaS platform built on top of Kubernetes that simplifies application deployment and management.
 
-Currently, only the **API** component is under development, but the project will ultimately include both a **portal** and an **API**, organized in a monorepo.
+## 🚀 Quick Start
 
-## Project Overview
-
-- **Framework**: FastAPI
-- **Local Development**: Docker with Docker Compose
-- **Kubernetes**: K3s (lightweight Kubernetes)
-
-### Features
-
-- **Cluster Management**: The platform introduces the concept of **JOINING clusters**, allowing Kubernetes clusters to be managed through the API.
-- **JOIN Process**: After creating a Service Account with secret and ClusterRoleBinding, the Kubernetes cluster can be added to the platform by providing the token from the secret in the JOIN request.
-
-### Local Setup
-
-This project uses Docker Compose to set up the local environment, including the API, database, and a local Kubernetes cluster (K3s).
-
-#### Prerequisites
+### Prerequisites
 
 - Docker
 - Docker Compose
 
-#### Local Environment Setup
+### Running the Project
 
-1. **Clone the repository**:
-    ```bash
-    git clone git@github.com:digmunhoz/tron.git
-    cd tron
-    ```
+Run a single command to start the entire environment:
 
-2. **Start the environment** using Docker Compose:
-    ```bash
-    make start
-    ```
+```bash
+make start
+```
 
-   This command will start:
-   - The FastAPI application
-   - A PostgreSQL database
-   - A K3s cluster
+This command will:
+- ✅ Start the FastAPI API (http://localhost:8000)
+- ✅ Start the React Portal (http://localhost:3000)
+- ✅ Start the PostgreSQL database
+- ✅ Start the Kubernetes cluster (K3s)
+- ✅ Run database migrations
+- ✅ Load initial templates
+- ✅ Create default administrator user
+- ✅ Configure API token
+- ✅ Create "local" environment
+- ✅ Configure local cluster
 
-3. **View logs**:
-    ```bash
-    make logs
-    ```
+### Access the Portal
 
-4. **Stop the environment**:
-    ```bash
-    make stop
-    ```
+After running `make start`, access:
 
-5. **Check the status of the services**:
-    ```bash
-    make status
-    ```
+**URL**: [http://localhost:3000](http://localhost:3000)
 
-#### Managing Database Migrations
+**Default credentials**:
+- **Email**: `admin@example.com`
+- **Password**: `admin`
 
-- **Create a new migration**:
-    ```bash
-    make api-migration
-    ```
+## 📚 API Documentation
 
-- **Apply migrations**:
-    ```bash
-    make api-migrate
-    ```
+Interactive API documentation is available at:
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
-#### Using kubectl with K3s
+## 🛠️ Useful Commands
 
-Once the local environment is up, you can use `kubectl` to interact with the K3s cluster. Just run the following command to set the KUBECONFIG:
+### Environment Management
+
+```bash
+# Start environment
+make start
+
+# Stop environment
+make stop
+
+# View logs
+make logs
+
+# Check service status
+make status
+
+# Rebuild images
+make build
+```
+
+### Database Migrations
+
+```bash
+# Create new migration
+make api-migration
+
+# Apply migrations
+make api-migrate
+```
+
+### Using kubectl with K3s
+
+To interact with the local K3s cluster:
 
 ```bash
 export KUBECONFIG=./volumes/kubeconfig/kubeconfig.yaml
+kubectl get nodes
 ```
 
-### API Documentation
+## 🏗️ Architecture
 
-The API documentation is available at the following endpoints:
-- Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- ReDoc: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+The project is organized as a monorepo containing:
 
-### Cluster Join Example
+- **API** (`/api`): FastAPI backend with cluster, environment, application, and template management
+- **Portal** (`/portal`): React frontend for user interface
+- **Scripts** (`/scripts`): Automation and setup scripts
 
-Before joining a Kubernetes cluster, you need to create an **Environment**. This is done by making a POST request to the `/environments` endpoint:
+## 🔐 Authentication
 
-#### Example: Create Environment
+The platform supports two authentication methods:
 
-```bash
-curl -X POST "http://localhost:8000/environments" \
--H "Content-Type: application/json" \
--d '{
-  "name": "production"
-}'
+1. **JWT (JSON Web Tokens)**: For web portal users
+2. **API Tokens**: For programmatic access via `x-tron-token` header
+
+### User Roles
+
+- **Admin**: Full access to all resources
+- **User**: Limited access (read-only on administrative resources)
+- **Viewer**: Read-only access
+
+## 📖 Main Features
+
+- **Cluster Management**: Add and manage Kubernetes clusters
+- **Environments**: Organize resources by environments (dev, staging, production)
+- **Applications**: Application deployment and management
+- **Templates**: Reusable templates for components
+- **Users**: User and permission management
+- **API Tokens**: Tokens for programmatic access
+
+## 🔧 Development
+
+### Project Structure
+
+```
+tron/
+├── api/              # FastAPI backend
+├── portal/           # React frontend
+├── scripts/          # Automation scripts
+├── docker/           # Docker Compose configurations
+└── volumes/          # Persistent volumes (kubeconfig, tokens)
 ```
 
-Once the environment is created, you can proceed with joining the cluster to the platform.
+### Environment Variables
 
-#### Example: ServiceAccount and ClusterRoleBinding
-
-Create a ServiceAccount with a secret and a ClusterRoleBinding to give it necessary permissions:
-
-```shell
-kubectl -n kube-system create sa tron
-kubectl -n kube-system apply -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: tron
-  annotations:
-    kubernetes.io/service-account.name: tron
-type: kubernetes.io/service-account-token
-EOF
-kubectl -n kube-system create clusterrolebinding tron --clusterrole=cluster-admin --serviceaccount=kube-system:tron
-
-export TOKEN=`kubectl -n kube-system get secret tron -o jsonpath="{.data.token}" | base64 -d`
-```
-
-Once this is set up, retrieve the token from the secret and use it in your JOIN API request:
-
-```bash
-curl -X POST "http://localhost:8000/clusters/" \
--H "Content-Type: application/json" \
--d '{
-  "name": "my-cluster",
-  "endpoint": "https://my-cluster-endpoint",
-  "token": "<your_token>",
-  "environment_uuid": "<environment_uuid>"
-}'
-```
-
-### Makefile Commands
-
-- `start`: Starts the local environment (API, DB, K3s).
-- `build`: Builds the Docker images.
-- `stop`: Stops the environment.
-- `logs`: Shows logs from the running containers.
-- `status`: Shows the status of the services.
-- `api-migrate`: Runs database migrations.
-- `api-migration`: Creates a new migration file.
-- `api-test`: Runs API tests.
+Main environment variables can be configured in the `docker/docker-compose.yaml` file or through `.env` files.
 
 ---
 
-This README covers the essential information for setting up, running, and interacting with the API, as well as the process for adding Kubernetes clusters to the platform.
+**Built with ❤️ to simplify Kubernetes application management**

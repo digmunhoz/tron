@@ -4,199 +4,245 @@ set -e
 
 # Configurações
 API_URL="${API_URL:-http://localhost:8000}"
-CLUSTER_NAME="k3s"
-API_ADDRESS="https://k3s-server:5443"
+TOKEN_NAME="setup-script-token"
+TOKEN_FILE="${TOKEN_FILE:-./volumes/token/api-token.txt}"
+KUBECONFIG_FILE="${KUBECONFIG_FILE:-./volumes/kubeconfig/kubeconfig.yaml}"
 ENVIRONMENT_NAME="${ENVIRONMENT_NAME:-local}"
-KUBECONFIG="${KUBECONFIG:-./volumes/kubeconfig/kubeconfig.yaml}"
+CLUSTER_NAME="${CLUSTER_NAME:-local-cluster}"
+CLUSTER_API_ADDRESS="${CLUSTER_API_ADDRESS:-https://k3s-server:5443}"
+SERVICE_ACCOUNT_NAME="${SERVICE_ACCOUNT_NAME:-tron}"
+SERVICE_ACCOUNT_NAMESPACE="${SERVICE_ACCOUNT_NAMESPACE:-kube-system}"
+ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
 
-# Cores para output
+# Cores
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-echo -e "${GREEN}🚀 Configurando cluster K3s na plataforma...${NC}"
-
-# Verificar se o kubeconfig existe
-if [ ! -f "$KUBECONFIG" ]; then
-    echo -e "${RED}❌ Erro: Kubeconfig não encontrado em $KUBECONFIG${NC}"
-    echo -e "${YELLOW}💡 Certifique-se de que o K3s está rodando (make start)${NC}"
-    exit 1
-fi
-
-# Exportar KUBECONFIG
-export KUBECONFIG
-
-# Verificar se kubectl consegue se conectar
-if ! kubectl cluster-info &>/dev/null; then
-    echo -e "${RED}❌ Erro: Não foi possível conectar ao cluster K3s${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✓ Conectado ao cluster K3s${NC}"
-
-# Criar ServiceAccount se não existir
-if ! kubectl -n kube-system get sa tron &>/dev/null; then
-    echo -e "${YELLOW}📝 Criando ServiceAccount 'tron'...${NC}"
-    kubectl -n kube-system create sa tron
-else
-    echo -e "${GREEN}✓ ServiceAccount 'tron' já existe${NC}"
-fi
-
-# Criar Secret se não existir
-if ! kubectl -n kube-system get secret tron &>/dev/null; then
-    echo -e "${YELLOW}📝 Criando Secret 'tron'...${NC}"
-    kubectl -n kube-system apply -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: tron
-  annotations:
-    kubernetes.io/service-account.name: tron
-type: kubernetes.io/service-account-token
-EOF
-else
-    echo -e "${GREEN}✓ Secret 'tron' já existe${NC}"
-fi
-
-# Criar ClusterRoleBinding se não existir
-if ! kubectl -n kube-system get clusterrolebinding tron &>/dev/null; then
-    echo -e "${YELLOW}📝 Criando ClusterRoleBinding 'tron'...${NC}"
-    kubectl -n kube-system create clusterrolebinding tron --clusterrole=cluster-admin --serviceaccount=kube-system:tron
-else
-    echo -e "${GREEN}✓ ClusterRoleBinding 'tron' já existe${NC}"
-fi
-
-# Aguardar o token ser gerado (pode levar alguns segundos)
-echo -e "${YELLOW}⏳ Aguardando geração do token...${NC}"
-sleep 3
-
-# Obter o token
-TOKEN=$(kubectl -n kube-system get secret tron -o jsonpath="{.data.token}" | base64 -d)
-
-if [ -z "$TOKEN" ]; then
-    echo -e "${RED}❌ Erro: Não foi possível obter o token do ServiceAccount${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✓ Token obtido com sucesso${NC}"
+echo -e "${GREEN}🚀 Validando/Criando token de API...${NC}"
 
 # Verificar se a API está acessível
 if ! curl -s -f "${API_URL}/docs" &>/dev/null; then
-    echo -e "${RED}❌ Erro: API não está acessível em ${API_URL}${NC}"
-    echo -e "${YELLOW}💡 Certifique-se de que a API está rodando (make start)${NC}"
+    echo -e "${RED}❌ API não está acessível em ${API_URL}${NC}"
     exit 1
 fi
 
 echo -e "${GREEN}✓ API está acessível${NC}"
 
-# Buscar ambiente "local" ou criar se não existir
-echo -e "${YELLOW}🔍 Buscando ambiente '${ENVIRONMENT_NAME}'...${NC}"
-ENVIRONMENTS_RESPONSE=$(curl -s "${API_URL}/environments/")
+# Fazer login
+echo -e "${YELLOW}🔐 Fazendo login...${NC}"
+LOGIN_RESPONSE=$(curl -s -X POST "${API_URL}/auth/login" \
+    -H "Content-Type: application/json" \
+    -d "{\"email\": \"${ADMIN_EMAIL}\", \"password\": \"${ADMIN_PASSWORD}\"}")
 
-# Tentar usar jq se disponível, senão usar grep
-if command -v jq &> /dev/null; then
-    ENVIRONMENT_UUID=$(echo "$ENVIRONMENTS_RESPONSE" | jq -r ".[] | select(.name == \"${ENVIRONMENT_NAME}\") | .uuid" | head -1)
-else
-    # Fallback: buscar por nome e extrair UUID
-    ENVIRONMENT_UUID=$(echo "$ENVIRONMENTS_RESPONSE" | grep -A10 "\"name\":\"${ENVIRONMENT_NAME}\"" | grep -o "\"uuid\":\"[^\"]*\"" | head -1 | cut -d'"' -f4)
+JWT_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.access_token // empty')
+
+if [ -z "$JWT_TOKEN" ]; then
+    echo -e "${RED}❌ Erro ao fazer login${NC}"
+    echo "$LOGIN_RESPONSE"
+    exit 1
 fi
 
-if [ -z "$ENVIRONMENT_UUID" ] || [ "$ENVIRONMENT_UUID" = "null" ]; then
-    echo -e "${YELLOW}📝 Criando ambiente '${ENVIRONMENT_NAME}'...${NC}"
-    ENVIRONMENT_RESPONSE=$(curl -s -X POST "${API_URL}/environments/" \
-        -H "Content-Type: application/json" \
-        -d "{\"name\": \"${ENVIRONMENT_NAME}\"}")
+echo -e "${GREEN}✓ Login realizado${NC}"
 
-    if command -v jq &> /dev/null; then
-        ENVIRONMENT_UUID=$(echo "$ENVIRONMENT_RESPONSE" | jq -r '.uuid')
-        ERROR_MSG=$(echo "$ENVIRONMENT_RESPONSE" | jq -r '.detail // empty')
+# Verificar se token existe no backend
+echo -e "${YELLOW}🔍 Verificando se token existe no backend...${NC}"
+TOKENS_RESPONSE=$(curl -s -X GET "${API_URL}/tokens" \
+    -H "Authorization: Bearer ${JWT_TOKEN}")
+
+TOKEN_EXISTS=$(echo "$TOKENS_RESPONSE" | jq -r ".[] | select(.name == \"${TOKEN_NAME}\") | .uuid" | head -1)
+
+if [ -n "$TOKEN_EXISTS" ] && [ "$TOKEN_EXISTS" != "null" ]; then
+    echo -e "${GREEN}✓ Token já existe no backend${NC}"
+
+    # Verificar se temos o token salvo
+    if [ -f "$TOKEN_FILE" ]; then
+        SAVED_TOKEN=$(cat "$TOKEN_FILE" | tr -d '\n\r ')
+        if [ -n "$SAVED_TOKEN" ]; then
+            # Testar se funciona
+            TEST_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X GET "${API_URL}/environments/" \
+                -H "x-tron-token: ${SAVED_TOKEN}")
+            if [ "$TEST_CODE" = "200" ]; then
+                echo -e "${GREEN}✓ Token salvo ainda é válido${NC}"
+                API_TOKEN="$SAVED_TOKEN"
+            else
+                echo -e "${YELLOW}⚠️  Token salvo não é válido. Deletando e criando novo...${NC}"
+                curl -s -X DELETE "${API_URL}/tokens/${TOKEN_EXISTS}" \
+                    -H "Authorization: Bearer ${JWT_TOKEN}" > /dev/null
+                API_TOKEN=""
+            fi
+        else
+            echo -e "${YELLOW}⚠️  Token existe no backend mas não temos o valor. Deletando...${NC}"
+            curl -s -X DELETE "${API_URL}/tokens/${TOKEN_EXISTS}" \
+                -H "Authorization: Bearer ${JWT_TOKEN}" > /dev/null
+            API_TOKEN=""
+        fi
     else
-        ENVIRONMENT_UUID=$(echo "$ENVIRONMENT_RESPONSE" | grep -o "\"uuid\":\"[^\"]*\"" | head -1 | cut -d'"' -f4)
-        ERROR_MSG=$(echo "$ENVIRONMENT_RESPONSE" | grep -o "\"detail\":\"[^\"]*\"" | head -1 | cut -d'"' -f4)
+        echo -e "${YELLOW}⚠️  Token existe no backend mas não temos o valor. Deletando...${NC}"
+        curl -s -X DELETE "${API_URL}/tokens/${TOKEN_EXISTS}" \
+            -H "Authorization: Bearer ${JWT_TOKEN}" > /dev/null
+        API_TOKEN=""
     fi
+else
+    API_TOKEN=""
+fi
 
-    if [ -z "$ENVIRONMENT_UUID" ] || [ "$ENVIRONMENT_UUID" = "null" ] || [ -n "$ERROR_MSG" ]; then
-        echo -e "${RED}❌ Erro: Não foi possível criar o ambiente${NC}"
-        echo "$ENVIRONMENT_RESPONSE"
+# Criar novo token se necessário
+if [ -z "$API_TOKEN" ]; then
+    echo -e "${YELLOW}📝 Criando novo token...${NC}"
+    CREATE_RESPONSE=$(curl -s -X POST "${API_URL}/tokens" \
+        -H "Authorization: Bearer ${JWT_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d "{\"name\": \"${TOKEN_NAME}\", \"role\": \"admin\"}")
+
+    API_TOKEN=$(echo "$CREATE_RESPONSE" | jq -r '.token // empty')
+
+    if [ -z "$API_TOKEN" ]; then
+        echo -e "${RED}❌ Erro ao criar token${NC}"
+        echo "$CREATE_RESPONSE"
         exit 1
     fi
-    echo -e "${GREEN}✓ Ambiente '${ENVIRONMENT_NAME}' criado (UUID: ${ENVIRONMENT_UUID})${NC}"
-else
-    echo -e "${GREEN}✓ Ambiente '${ENVIRONMENT_NAME}' encontrado (UUID: ${ENVIRONMENT_UUID})${NC}"
+
+    # Salvar token
+    mkdir -p "$(dirname "$TOKEN_FILE")"
+    echo "$API_TOKEN" > "$TOKEN_FILE"
+    chmod 600 "$TOKEN_FILE"
+
+    echo -e "${GREEN}✓ Token criado e salvo em ${TOKEN_FILE}${NC}"
 fi
 
-# Buscar cluster "k3s"
-echo -e "${YELLOW}🔍 Buscando cluster '${CLUSTER_NAME}'...${NC}"
-CLUSTERS_RESPONSE=$(curl -s "${API_URL}/clusters/")
+# Verificar/criar ambiente
+echo -e "${YELLOW}🔍 Verificando ambiente '${ENVIRONMENT_NAME}'...${NC}"
+ENVIRONMENTS_RESPONSE=$(curl -s -X GET "${API_URL}/environments/" \
+    -H "x-tron-token: ${API_TOKEN}")
 
-# Tentar usar jq se disponível, senão usar grep
-if command -v jq &> /dev/null; then
-    CLUSTER_UUID=$(echo "$CLUSTERS_RESPONSE" | jq -r ".[] | select(.name == \"${CLUSTER_NAME}\") | .uuid" | head -1)
+ENVIRONMENT_UUID=$(echo "$ENVIRONMENTS_RESPONSE" | jq -r ".[] | select(.name == \"${ENVIRONMENT_NAME}\") | .uuid" | head -1)
+
+if [ -n "$ENVIRONMENT_UUID" ] && [ "$ENVIRONMENT_UUID" != "null" ]; then
+    echo -e "${GREEN}✓ Ambiente '${ENVIRONMENT_NAME}' já existe${NC}"
 else
-    # Fallback: buscar por nome e extrair UUID
-    CLUSTER_UUID=$(echo "$CLUSTERS_RESPONSE" | grep -B5 "\"name\":\"${CLUSTER_NAME}\"" | grep -o "\"uuid\":\"[^\"]*\"" | head -1 | cut -d'"' -f4)
-fi
-
-if [ -z "$CLUSTER_UUID" ] || [ "$CLUSTER_UUID" = "null" ]; then
-    # Criar cluster
-    echo -e "${YELLOW}📝 Criando cluster '${CLUSTER_NAME}'...${NC}"
-    CLUSTER_RESPONSE=$(curl -s -X POST "${API_URL}/clusters/" \
+    echo -e "${YELLOW}📝 Criando ambiente '${ENVIRONMENT_NAME}'...${NC}"
+    CREATE_ENV_RESPONSE=$(curl -s -X POST "${API_URL}/environments/" \
         -H "Content-Type: application/json" \
-        -d "{
-            \"name\": \"${CLUSTER_NAME}\",
-            \"api_address\": \"${API_ADDRESS}\",
-            \"token\": \"${TOKEN}\",
-            \"environment_uuid\": \"${ENVIRONMENT_UUID}\"
-        }")
+        -H "x-tron-token: ${API_TOKEN}" \
+        -d "{\"name\": \"${ENVIRONMENT_NAME}\"}")
 
-    if command -v jq &> /dev/null; then
-        ERROR_MSG=$(echo "$CLUSTER_RESPONSE" | jq -r '.detail // empty')
-        if [ -n "$ERROR_MSG" ] && [ "$ERROR_MSG" != "null" ]; then
-            echo -e "${RED}❌ Erro ao criar cluster:${NC}"
-            echo "$CLUSTER_RESPONSE" | jq .
-            exit 1
-        fi
-        CLUSTER_UUID=$(echo "$CLUSTER_RESPONSE" | jq -r '.uuid')
-    else
-        if echo "$CLUSTER_RESPONSE" | grep -q "\"detail\""; then
-            echo -e "${RED}❌ Erro ao criar cluster:${NC}"
-            echo "$CLUSTER_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$CLUSTER_RESPONSE"
-            exit 1
-        fi
-        CLUSTER_UUID=$(echo "$CLUSTER_RESPONSE" | grep -o "\"uuid\":\"[^\"]*\"" | head -1 | cut -d'"' -f4)
+    ENVIRONMENT_UUID=$(echo "$CREATE_ENV_RESPONSE" | jq -r '.uuid // empty')
+
+    if [ -z "$ENVIRONMENT_UUID" ] || [ "$ENVIRONMENT_UUID" = "null" ]; then
+        echo -e "${RED}❌ Erro ao criar ambiente${NC}"
+        echo "$CREATE_ENV_RESPONSE"
+        exit 1
     fi
 
-    echo -e "${GREEN}✓ Cluster '${CLUSTER_NAME}' criado com sucesso (UUID: ${CLUSTER_UUID})${NC}"
-else
-    # Atualizar token do cluster
-    echo -e "${YELLOW}📝 Atualizando token do cluster '${CLUSTER_NAME}'...${NC}"
-    UPDATE_RESPONSE=$(curl -s -X PUT "${API_URL}/clusters/${CLUSTER_UUID}" \
-        -H "Content-Type: application/json" \
-        -d "{
-            \"name\": \"${CLUSTER_NAME}\",
-            \"api_address\": \"${API_ADDRESS}\",
-            \"token\": \"${TOKEN}\",
-            \"environment_uuid\": \"${ENVIRONMENT_UUID}\"
-        }")
-
-    if command -v jq &> /dev/null; then
-        ERROR_MSG=$(echo "$UPDATE_RESPONSE" | jq -r '.detail // empty')
-        if [ -n "$ERROR_MSG" ] && [ "$ERROR_MSG" != "null" ]; then
-            echo -e "${RED}❌ Erro ao atualizar cluster:${NC}"
-            echo "$UPDATE_RESPONSE" | jq .
-            exit 1
-        fi
-    else
-        if echo "$UPDATE_RESPONSE" | grep -q "\"detail\""; then
-            echo -e "${RED}❌ Erro ao atualizar cluster:${NC}"
-            echo "$UPDATE_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$UPDATE_RESPONSE"
-            exit 1
-        fi
-    fi
-
-    echo -e "${GREEN}✓ Token do cluster '${CLUSTER_NAME}' atualizado com sucesso${NC}"
+    echo -e "${GREEN}✓ Ambiente '${ENVIRONMENT_NAME}' criado${NC}"
 fi
 
-echo -e "${GREEN}🎉 Configuração concluída!${NC}"
+# Verificar/criar ServiceAccount e obter token
+echo -e "${YELLOW}🔍 Verificando ServiceAccount '${SERVICE_ACCOUNT_NAME}'...${NC}"
+
+# Verificar se kubectl está disponível e se o kubeconfig existe
+if ! command -v kubectl &> /dev/null; then
+    echo -e "${YELLOW}⚠️  kubectl não encontrado. Pulando criação do cluster${NC}"
+    CLUSTER_TOKEN=""
+elif [ ! -f "$KUBECONFIG_FILE" ]; then
+    echo -e "${YELLOW}⚠️  Kubeconfig não encontrado em ${KUBECONFIG_FILE}. Pulando criação do cluster${NC}"
+    CLUSTER_TOKEN=""
+else
+    # Extrair api_address do kubeconfig se não foi definido
+    if [ -z "$CLUSTER_API_ADDRESS" ] || [ "$CLUSTER_API_ADDRESS" = "https://127.0.0.1:6443" ]; then
+        CLUSTER_API_ADDRESS=$(kubectl --kubeconfig="${KUBECONFIG_FILE}" config view -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null)
+        if [ -z "$CLUSTER_API_ADDRESS" ]; then
+            CLUSTER_API_ADDRESS="https://127.0.0.1:5443"
+        fi
+        echo -e "${GREEN}✓ API address extraído do kubeconfig: ${CLUSTER_API_ADDRESS}${NC}"
+    fi
+    # Verificar se ServiceAccount existe
+    if ! kubectl --kubeconfig="${KUBECONFIG_FILE}" -n "${SERVICE_ACCOUNT_NAMESPACE}" get sa "${SERVICE_ACCOUNT_NAME}" &>/dev/null; then
+        echo -e "${YELLOW}📝 Criando ServiceAccount '${SERVICE_ACCOUNT_NAME}'...${NC}"
+        kubectl --kubeconfig="${KUBECONFIG_FILE}" -n "${SERVICE_ACCOUNT_NAMESPACE}" create sa "${SERVICE_ACCOUNT_NAME}"
+
+        # Criar Secret
+        kubectl --kubeconfig="${KUBECONFIG_FILE}" -n "${SERVICE_ACCOUNT_NAMESPACE}" apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${SERVICE_ACCOUNT_NAME}
+  annotations:
+    kubernetes.io/service-account.name: ${SERVICE_ACCOUNT_NAME}
+type: kubernetes.io/service-account-token
+EOF
+
+        # Criar ClusterRoleBinding
+        kubectl --kubeconfig="${KUBECONFIG_FILE}" -n "${SERVICE_ACCOUNT_NAMESPACE}" create clusterrolebinding "${SERVICE_ACCOUNT_NAME}" \
+            --clusterrole=cluster-admin \
+            --serviceaccount="${SERVICE_ACCOUNT_NAMESPACE}:${SERVICE_ACCOUNT_NAME}" \
+            --dry-run=client -o yaml | kubectl --kubeconfig="${KUBECONFIG_FILE}" apply -f -
+
+        echo -e "${GREEN}✓ ServiceAccount criado${NC}"
+    else
+        echo -e "${GREEN}✓ ServiceAccount já existe${NC}"
+    fi
+
+    # Aguardar o token ser gerado
+    echo -e "${YELLOW}⏳ Aguardando token do ServiceAccount...${NC}"
+    for i in {1..30}; do
+        TOKEN_B64=$(kubectl --kubeconfig="${KUBECONFIG_FILE}" -n "${SERVICE_ACCOUNT_NAMESPACE}" get secret "${SERVICE_ACCOUNT_NAME}" -o jsonpath='{.data.token}' 2>/dev/null)
+        if [ -n "$TOKEN_B64" ]; then
+            # Decodificar base64 (tentar -d primeiro, depois -D para compatibilidade)
+            CLUSTER_TOKEN=$(echo "$TOKEN_B64" | base64 -d 2>/dev/null || echo "$TOKEN_B64" | base64 -D 2>/dev/null)
+            if [ -n "$CLUSTER_TOKEN" ]; then
+                break
+            fi
+        fi
+        sleep 1
+    done
+
+    if [ -z "$CLUSTER_TOKEN" ]; then
+        echo -e "${RED}❌ Não foi possível obter token do ServiceAccount${NC}"
+        CLUSTER_TOKEN=""
+    else
+        echo -e "${GREEN}✓ Token do ServiceAccount obtido${NC}"
+    fi
+fi
+
+# Verificar/criar cluster
+echo -e "${YELLOW}🔍 Verificando cluster '${CLUSTER_NAME}'...${NC}"
+CLUSTERS_RESPONSE=$(curl -s -X GET "${API_URL}/clusters/" \
+    -H "x-tron-token: ${API_TOKEN}")
+
+CLUSTER_UUID=$(echo "$CLUSTERS_RESPONSE" | jq -r ".[] | select(.name == \"${CLUSTER_NAME}\") | .uuid" | head -1)
+
+if [ -n "$CLUSTER_UUID" ] && [ "$CLUSTER_UUID" != "null" ]; then
+    echo -e "${GREEN}✓ Cluster '${CLUSTER_NAME}' já existe${NC}"
+else
+    if [ -z "$CLUSTER_TOKEN" ]; then
+        echo -e "${YELLOW}⚠️  Token do cluster não disponível. Pulando criação do cluster${NC}"
+    else
+        echo -e "${YELLOW}📝 Criando cluster '${CLUSTER_NAME}'...${NC}"
+        CREATE_CLUSTER_RESPONSE=$(curl -s -X POST "${API_URL}/clusters/" \
+            -H "Content-Type: application/json" \
+            -H "x-tron-token: ${API_TOKEN}" \
+            -d "{
+                \"name\": \"${CLUSTER_NAME}\",
+                \"api_address\": \"${CLUSTER_API_ADDRESS}\",
+                \"token\": \"${CLUSTER_TOKEN}\",
+                \"environment_uuid\": \"${ENVIRONMENT_UUID}\"
+            }")
+
+        CLUSTER_UUID=$(echo "$CREATE_CLUSTER_RESPONSE" | jq -r '.uuid // empty')
+
+        if [ -z "$CLUSTER_UUID" ] || [ "$CLUSTER_UUID" = "null" ]; then
+            echo -e "${RED}❌ Erro ao criar cluster${NC}"
+            echo "$CREATE_CLUSTER_RESPONSE"
+            exit 1
+        fi
+
+        echo -e "${GREEN}✓ Cluster '${CLUSTER_NAME}' criado${NC}"
+    fi
+fi
+
+echo -e "${GREEN}🎉 Concluído!${NC}"
 
