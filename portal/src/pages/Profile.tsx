@@ -35,7 +35,7 @@ export default function Profile() {
       return await authApi.updateProfile(data)
     },
     onSuccess: (updatedUser) => {
-      setSuccess('Perfil atualizado com sucesso!')
+      setSuccess('Profile updated successfully!')
       setError(null)
       setCurrentPassword('')
       setNewPassword('')
@@ -53,7 +53,7 @@ export default function Profile() {
       }
     },
     onError: (err: any) => {
-      setError(err.response?.data?.detail || 'Erro ao atualizar perfil')
+      setError(err.response?.data?.detail || 'Error updating profile')
       setSuccess(null)
     },
   })
@@ -67,24 +67,24 @@ export default function Profile() {
     if (email && email !== user?.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(email)) {
-        setError('Email inválido')
+        setError('Invalid email')
         return
       }
     }
 
     // Validações de senha
     if (newPassword && newPassword.length < 6) {
-      setError('A nova senha deve ter pelo menos 6 caracteres')
+      setError('New password must be at least 6 characters')
       return
     }
 
     if (newPassword && newPassword !== confirmPassword) {
-      setError('As senhas não coincidem')
+      setError('Passwords do not match')
       return
     }
 
     if (newPassword && !currentPassword) {
-      setError('É necessário informar a senha atual para alterar a senha')
+      setError('Current password is required to change password')
       return
     }
 
@@ -106,7 +106,7 @@ export default function Profile() {
 
     // Só atualizar se houver mudanças
     if (Object.keys(updateData).length === 0) {
-      setError('Nenhuma alteração foi feita')
+      setError('No changes were made')
       return
     }
 
@@ -118,14 +118,14 @@ export default function Profile() {
       <Breadcrumbs
         items={[
           { label: 'Home', path: '/' },
-          { label: 'Perfil', path: '/profile' },
+          { label: 'Profile', path: '/profile' },
         ]}
       />
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gradient">Meu Perfil</h1>
-          <p className="text-neutral-600 mt-1">Gerencie suas informações pessoais e senha</p>
+          <h1 className="text-3xl font-bold text-gradient">My Profile</h1>
+          <p className="text-neutral-600 mt-1">Manage your personal information and password</p>
         </div>
       </div>
 
@@ -149,7 +149,7 @@ export default function Profile() {
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-neutral-800 flex items-center gap-2">
               <User className="w-5 h-5" />
-              Informações Pessoais
+              Personal Information
             </h2>
 
             <div>
@@ -162,14 +162,14 @@ export default function Profile() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input w-full"
-                placeholder="seu@email.com"
+                placeholder="your@email.com"
                 required
               />
             </div>
 
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-neutral-700 mb-2">
-                Nome Completo
+                Full Name
               </label>
               <input
                 id="fullName"
@@ -177,7 +177,7 @@ export default function Profile() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="input w-full"
-                placeholder="Seu nome completo"
+                placeholder="Your full name"
               />
             </div>
           </div>
@@ -186,15 +186,15 @@ export default function Profile() {
           <div className="space-y-4 pt-6 border-t border-neutral-200">
             <h2 className="text-xl font-semibold text-neutral-800 flex items-center gap-2">
               <Save className="w-5 h-5" />
-              Alterar Senha
+              Change Password
             </h2>
             <p className="text-sm text-neutral-600">
-              Deixe em branco se não deseja alterar a senha
+              Leave blank if you don't want to change the password
             </p>
 
             <div>
               <label htmlFor="currentPassword" className="block text-sm font-medium text-neutral-700 mb-2">
-                Senha Atual
+                Current Password
               </label>
               <div className="relative">
                 <input
@@ -203,7 +203,7 @@ export default function Profile() {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   className="input w-full pr-10"
-                  placeholder="Digite sua senha atual"
+                  placeholder="Enter your current password"
                 />
                 <button
                   type="button"
@@ -217,7 +217,7 @@ export default function Profile() {
 
             <div>
               <label htmlFor="newPassword" className="block text-sm font-medium text-neutral-700 mb-2">
-                Nova Senha
+                New Password
               </label>
               <div className="relative">
                 <input
@@ -226,7 +226,7 @@ export default function Profile() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="input w-full pr-10"
-                  placeholder="Digite a nova senha (mínimo 6 caracteres)"
+                  placeholder="Enter new password (minimum 6 characters)"
                   minLength={6}
                 />
                 <button
@@ -241,7 +241,7 @@ export default function Profile() {
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-neutral-700 mb-2">
-                Confirmar Nova Senha
+                Confirm New Password
               </label>
               <div className="relative">
                 <input
@@ -250,7 +250,7 @@ export default function Profile() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="input w-full pr-10"
-                  placeholder="Confirme a nova senha"
+                  placeholder="Confirm new password"
                   minLength={6}
                 />
                 <button
@@ -271,7 +271,7 @@ export default function Profile() {
               onClick={() => navigate('/')}
               className="btn-secondary"
             >
-              Cancelar
+              Cancel
             </button>
             <button
               type="submit"
@@ -281,12 +281,12 @@ export default function Profile() {
               {updateProfileMutation.isPending ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>Salvando...</span>
+                  <span>Saving...</span>
                 </>
               ) : (
                 <>
                   <Save className="w-5 h-5" />
-                  <span>Salvar Alterações</span>
+                  <span>Save Changes</span>
                 </>
               )}
             </button>

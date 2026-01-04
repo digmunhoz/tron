@@ -34,7 +34,7 @@ function WebappDetail() {
 
   const queryClient = useQueryClient()
 
-  const [refreshInterval, setRefreshInterval] = useState<number>(5000) // Padrão: 5 segundos
+  const [refreshInterval, setRefreshInterval] = useState<number>(5000) // Default: 5 seconds
 
   const { data: pods = [], isLoading: isLoadingPods } = useQuery({
     queryKey: ['webapp-pods', componentUuid],
@@ -188,23 +188,23 @@ function WebappDetail() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gradient">{component?.name || 'Detalhes do Webapp'}</h1>
-          <p className="text-neutral-600 mt-1">Pods em execução no Kubernetes</p>
+          <h1 className="text-3xl font-bold text-gradient">{component?.name || 'Webapp Details'}</h1>
+          <p className="text-neutral-600 mt-1">Pods running in Kubernetes</p>
         </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-neutral-700">
-            <span>Atualizar:</span>
+            <span>Refresh:</span>
             <select
               value={refreshInterval}
               onChange={(e) => setRefreshInterval(Number(e.target.value))}
               className="input pr-10"
             >
-              <option value={0}>Desabilitado</option>
-              <option value={2000}>2 segundos</option>
-              <option value={5000}>5 segundos</option>
-              <option value={10000}>10 segundos</option>
-              <option value={30000}>30 segundos</option>
-              <option value={60000}>1 minuto</option>
+              <option value={0}>Disabled</option>
+              <option value={2000}>2 seconds</option>
+              <option value={5000}>5 seconds</option>
+              <option value={10000}>10 seconds</option>
+              <option value={30000}>30 seconds</option>
+              <option value={60000}>1 minute</option>
             </select>
           </label>
         </div>

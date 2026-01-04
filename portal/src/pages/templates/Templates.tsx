@@ -330,7 +330,7 @@ function Templates() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gradient">Templates</h1>
-          <p className="text-neutral-600 mt-1">Gerenciar templates Jinja2</p>
+          <p className="text-neutral-600 mt-1">Manage Jinja2 templates</p>
         </div>
         <div className="flex items-center gap-2">
           {activeTab === 'templates' && (
@@ -349,7 +349,7 @@ function Templates() {
               className="btn-primary flex items-center gap-2"
             >
               <Plus size={18} />
-              <span>Novo Template</span>
+              <span>New Template</span>
             </button>
           )}
           {activeTab === 'configs' && (
@@ -366,7 +366,7 @@ function Templates() {
               className="btn-primary flex items-center gap-2"
             >
               <Plus size={18} />
-              <span>Adicionar Template ao Componente</span>
+              <span>Add Template to Component</span>
             </button>
           )}
         </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { instancesApi, applicationComponentsApi, applicationsApi } from '../../services/api'
 import type { InstanceCreate, ApplicationComponentCreate } from '../../types'
 import {
@@ -127,10 +127,8 @@ function CreateInstance() {
       queryClient.invalidateQueries({ queryKey: ['instances'] })
       queryClient.invalidateQueries({ queryKey: ['application-components'] })
 
-      // Navigate back to application detail after 2 seconds
-      setTimeout(() => {
-        navigate(`/applications/${applicationUuid}`)
-      }, 2000)
+      // Navigate to instance detail page
+      navigate(`/applications/${applicationUuid}/instances/${instance.uuid}/components`)
     } catch (error: any) {
       setNotification({
         type: 'error',

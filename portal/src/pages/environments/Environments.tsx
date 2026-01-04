@@ -23,7 +23,7 @@ function Environments() {
   const createMutation = useMutation({
     mutationFn: environmentsApi.create,
     onSuccess: () => {
-      setNotification({ type: 'success', message: 'Environment criado com sucesso' })
+      setNotification({ type: 'success', message: 'Environment created successfully' })
       queryClient.invalidateQueries({ queryKey: ['environments'] })
       setIsOpen(false)
       setFormData({ name: '' })
@@ -32,7 +32,7 @@ function Environments() {
     onError: (error: any) => {
       setNotification({
         type: 'error',
-        message: error.response?.data?.detail || 'Erro ao criar environment',
+        message: error.response?.data?.detail || 'Error creating environment',
       })
       setTimeout(() => setNotification(null), 5000)
     },
@@ -41,14 +41,14 @@ function Environments() {
   const deleteMutation = useMutation({
     mutationFn: environmentsApi.delete,
     onSuccess: () => {
-      setNotification({ type: 'success', message: 'Environment deletado com sucesso' })
+      setNotification({ type: 'success', message: 'Environment deleted successfully' })
       queryClient.invalidateQueries({ queryKey: ['environments'] })
       setTimeout(() => setNotification(null), 5000)
     },
     onError: (error: any) => {
       setNotification({
         type: 'error',
-        message: error.response?.data?.detail || 'Erro ao deletar environment',
+        message: error.response?.data?.detail || 'Error deleting environment',
       })
       setTimeout(() => setNotification(null), 5000)
     },
@@ -57,7 +57,7 @@ function Environments() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.name) {
-      setNotification({ type: 'error', message: 'Nome é obrigatório' })
+      setNotification({ type: 'error', message: 'Name is required' })
       setTimeout(() => setNotification(null), 5000)
       return
     }
@@ -65,7 +65,7 @@ function Environments() {
   }
 
   const handleDelete = (uuid: string) => {
-    if (confirm('Tem certeza que deseja deletar este environment?')) {
+    if (confirm('Are you sure you want to delete this environment?')) {
       deleteMutation.mutate(uuid)
     }
   }
@@ -82,7 +82,7 @@ function Environments() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gradient">Environments</h1>
-          <p className="text-neutral-600 mt-1">Gerenciar environments</p>
+          <p className="text-neutral-600 mt-1">Manage environments</p>
         </div>
         <button
           onClick={() => {
@@ -92,7 +92,7 @@ function Environments() {
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-soft hover:shadow-soft-lg transition-all duration-200 text-sm font-medium"
         >
           <Plus size={18} />
-          Novo Environment
+          New Environment
         </button>
       </div>
 
@@ -101,12 +101,12 @@ function Environments() {
         columns={[
           {
             key: 'name',
-            label: 'Nome',
+            label: 'Name',
             render: (env) => <div className="text-sm font-medium text-slate-800">{env.name}</div>,
           },
           {
             key: 'created_at',
-            label: 'Criado em',
+            label: 'Created at',
             render: (env) => (
               <div className="text-sm text-slate-600">
                 {new Date(env.created_at).toLocaleDateString('pt-BR')}
@@ -116,7 +116,7 @@ function Environments() {
         ]}
         data={environments}
         isLoading={isLoading}
-        emptyMessage="Nenhum environment encontrado"
+        emptyMessage="No environments found"
         loadingColor="blue"
         getRowKey={(env) => env.uuid}
         actions={(env) => [
@@ -134,7 +134,7 @@ function Environments() {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-soft-lg max-w-md w-full border border-slate-200/60 animate-zoom-in">
             <div className="flex items-center justify-between p-5 border-b border-slate-200/60 bg-slate-50/50">
-              <h2 className="text-lg font-semibold text-slate-800">Novo Environment</h2>
+              <h2 className="text-lg font-semibold text-slate-800">New Environment</h2>
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-white rounded-md transition-colors"
@@ -144,7 +144,7 @@ function Environments() {
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Nome</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Name</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -160,14 +160,14 @@ function Environments() {
                   onClick={() => setIsOpen(false)}
                   className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-soft text-sm font-medium disabled:opacity-50"
                 >
-                  {createMutation.isPending ? 'Criando...' : 'Criar'}
+                  {createMutation.isPending ? 'Creating...' : 'Create'}
                 </button>
               </div>
             </form>

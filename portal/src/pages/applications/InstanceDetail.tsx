@@ -142,6 +142,24 @@ function InstanceDetail() {
     },
   })
 
+  const deleteInstanceMutation = useMutation({
+    mutationFn: instancesApi.delete,
+    onSuccess: () => {
+      setNotification({ type: 'success', message: 'Instance deleted successfully' })
+      queryClient.invalidateQueries({ queryKey: ['instances'] })
+      queryClient.invalidateQueries({ queryKey: ['application-components'] })
+      // Navigate to applications list after deletion
+      navigate('/applications')
+    },
+    onError: (error: any) => {
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.detail || 'Error deleting instance',
+      })
+      setTimeout(() => setNotification(null), 5000)
+    },
+  })
+
   // Agrupar componentes por tipo (deve estar antes dos early returns)
   const componentsByType = useMemo(() => {
     const grouped: Record<'webapp' | 'worker' | 'cron', InstanceComponent[]> = {
@@ -348,7 +366,19 @@ function InstanceDetail() {
             className="btn-secondary flex items-center gap-2"
           >
             <Pencil size={18} />
-            <span>Editar Instância</span>
+            <span>Edit Instance</span>
+          </button>
+          <button
+            onClick={() => {
+              if (confirm('Are you sure you want to delete this instance? This action cannot be undone.')) {
+                deleteInstanceMutation.mutate(instanceUuid!)
+              }
+            }}
+            disabled={deleteInstanceMutation.isPending}
+            className="btn-secondary flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
+          >
+            <Trash2 size={18} />
+            <span>{deleteInstanceMutation.isPending ? 'Deleting...' : 'Delete Instance'}</span>
           </button>
           <button
             onClick={() => {
@@ -358,7 +388,7 @@ function InstanceDetail() {
             className="btn-primary flex items-center gap-2"
           >
             <Plus size={18} />
-            <span>Adicionar Componente</span>
+            <span>Add Component</span>
           </button>
         </div>
       </div>

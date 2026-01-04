@@ -33,7 +33,7 @@ function Clusters() {
   const createMutation = useMutation({
     mutationFn: clustersApi.create,
     onSuccess: () => {
-      setNotification({ type: 'success', message: 'Cluster criado com sucesso' })
+      setNotification({ type: 'success', message: 'Cluster created successfully' })
       queryClient.invalidateQueries({ queryKey: ['clusters'] })
       setIsOpen(false)
       setEditingCluster(null)
@@ -43,7 +43,7 @@ function Clusters() {
     onError: (error: any) => {
       setNotification({
         type: 'error',
-        message: error.response?.data?.detail || 'Erro ao criar cluster',
+        message: error.response?.data?.detail || 'Error creating cluster',
       })
       setTimeout(() => setNotification(null), 5000)
     },
@@ -52,7 +52,7 @@ function Clusters() {
   const updateMutation = useMutation({
     mutationFn: clustersApi.update,
     onSuccess: () => {
-      setNotification({ type: 'success', message: 'Cluster atualizado com sucesso' })
+      setNotification({ type: 'success', message: 'Cluster updated successfully' })
       queryClient.invalidateQueries({ queryKey: ['clusters'] })
       setIsOpen(false)
       setEditingCluster(null)
@@ -62,7 +62,7 @@ function Clusters() {
     onError: (error: any) => {
       setNotification({
         type: 'error',
-        message: error.response?.data?.detail || 'Erro ao atualizar cluster',
+        message: error.response?.data?.detail || 'Error updating cluster',
       })
       setTimeout(() => setNotification(null), 5000)
     },
@@ -71,14 +71,14 @@ function Clusters() {
   const deleteMutation = useMutation({
     mutationFn: clustersApi.delete,
     onSuccess: () => {
-      setNotification({ type: 'success', message: 'Cluster deletado com sucesso' })
+      setNotification({ type: 'success', message: 'Cluster deleted successfully' })
       queryClient.invalidateQueries({ queryKey: ['clusters'] })
       setTimeout(() => setNotification(null), 5000)
     },
     onError: (error: any) => {
       setNotification({
         type: 'error',
-        message: error.response?.data?.detail || 'Erro ao deletar cluster',
+        message: error.response?.data?.detail || 'Error deleting cluster',
       })
       setTimeout(() => setNotification(null), 5000)
     },
@@ -87,13 +87,13 @@ function Clusters() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.name || !formData.api_address || !formData.environment_uuid) {
-      setNotification({ type: 'error', message: 'Nome, API Address e Environment são obrigatórios' })
+      setNotification({ type: 'error', message: 'Name, API Address and Environment are required' })
       setTimeout(() => setNotification(null), 5000)
       return
     }
 
     if (!formData.token) {
-      setNotification({ type: 'error', message: 'Token é obrigatório' })
+      setNotification({ type: 'error', message: 'Token is required' })
       setTimeout(() => setNotification(null), 5000)
       return
     }
@@ -131,7 +131,7 @@ function Clusters() {
   }
 
   const handleDelete = (uuid: string) => {
-    if (confirm('Tem certeza que deseja deletar este cluster?')) {
+    if (confirm('Are you sure you want to delete this cluster?')) {
       deleteMutation.mutate(uuid)
     }
   }
@@ -176,7 +176,7 @@ function Clusters() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gradient">Clusters</h1>
-          <p className="text-neutral-600 mt-1">Gerenciar clusters Kubernetes</p>
+          <p className="text-neutral-600 mt-1">Manage Kubernetes clusters</p>
         </div>
         <button
           onClick={() => {
@@ -187,7 +187,7 @@ function Clusters() {
           className="btn-primary flex items-center gap-2"
         >
           <Plus size={18} />
-          <span>Novo Cluster</span>
+          <span>New Cluster</span>
         </button>
       </div>
 
@@ -211,7 +211,7 @@ function Clusters() {
         columns={[
           {
             key: 'name',
-            label: 'Nome',
+            label: 'Name',
             render: (cluster) => (
               <div>
                 <div className="text-sm font-medium text-slate-800">{cluster.name}</div>
@@ -270,18 +270,18 @@ function Clusters() {
         ]}
         data={clusters}
         isLoading={isLoading}
-        emptyMessage="Nenhum cluster encontrado"
+        emptyMessage="No clusters found"
         loadingColor="blue"
         getRowKey={(cluster) => cluster.uuid}
         actions={(cluster) => [
           {
-            label: 'Editar',
+            label: 'Edit',
             icon: <Edit size={14} />,
             onClick: () => handleEdit(cluster),
             variant: 'default',
           },
           {
-            label: 'Deletar',
+            label: 'Delete',
             icon: <Trash2 size={14} />,
             onClick: () => handleDelete(cluster.uuid),
             variant: 'danger',
@@ -295,7 +295,7 @@ function Clusters() {
           <div className="bg-white rounded-xl shadow-soft-lg max-w-md w-full border border-slate-200/60 animate-zoom-in">
             <div className="flex items-center justify-between p-5 border-b border-slate-200/60 bg-slate-50/50">
               <h2 className="text-lg font-semibold text-slate-800">
-                {editingCluster ? 'Editar Cluster' : 'Novo Cluster'}
+                {editingCluster ? 'Edit Cluster' : 'New Cluster'}
               </h2>
               <button
                 onClick={handleCloseModal}
@@ -306,7 +306,7 @@ function Clusters() {
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Nome</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Name</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -334,12 +334,12 @@ function Clusters() {
                   value={formData.token}
                   onChange={(e) => setFormData({ ...formData, token: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 transition-all text-sm"
-                  placeholder="Token do ServiceAccount"
+                  placeholder="ServiceAccount token"
                   required
                 />
                 {editingCluster && (
                   <p className="mt-1 text-xs text-slate-500">
-                    Informe o token novamente. Se não deseja alterar, use o mesmo token atual.
+                    Enter the token again. If you don't want to change it, use the same current token.
                   </p>
                 )}
               </div>
@@ -354,7 +354,7 @@ function Clusters() {
                   required
                   disabled={!!editingCluster}
                 >
-                  <option value="">Selecione um environment</option>
+                  <option value="">Select an environment</option>
                   {environments.map((env) => (
                     <option key={env.uuid} value={env.uuid}>
                       {env.name}
@@ -363,7 +363,7 @@ function Clusters() {
                 </select>
                 {editingCluster && (
                   <p className="mt-1 text-xs text-slate-500">
-                    O environment não pode ser alterado após a criação.
+                    Environment cannot be changed after creation.
                   </p>
                 )}
               </div>
@@ -373,7 +373,7 @@ function Clusters() {
                   onClick={handleCloseModal}
                   className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -382,11 +382,11 @@ function Clusters() {
                 >
                   {editingCluster
                     ? updateMutation.isPending
-                      ? 'Salvando...'
-                      : 'Salvar'
+                      ? 'Saving...'
+                      : 'Save'
                     : createMutation.isPending
-                      ? 'Criando...'
-                      : 'Criar'}
+                      ? 'Creating...'
+                      : 'Create'}
                 </button>
               </div>
             </form>
@@ -399,7 +399,7 @@ function Clusters() {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-soft-lg max-w-md w-full border border-slate-200/60 animate-zoom-in">
             <div className="flex items-center justify-between p-5 border-b border-slate-200/60 bg-slate-50/50">
-              <h2 className="text-lg font-semibold text-slate-800">Detalhes do Status</h2>
+              <h2 className="text-lg font-semibold text-slate-800">Status Details</h2>
               <button
                 onClick={() => setStatusModal(null)}
                 className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-white rounded-md transition-colors"
@@ -409,13 +409,13 @@ function Clusters() {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Código</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Code</label>
                 <div className="px-3 py-2 bg-slate-50 rounded-lg text-sm text-slate-800 font-mono">
                   {statusModal.code}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Mensagem</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Message</label>
                 <div className="px-3 py-2 bg-slate-50 rounded-lg text-sm text-slate-800">
                   {statusModal.message}
                 </div>
@@ -426,7 +426,7 @@ function Clusters() {
                   onClick={() => setStatusModal(null)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-soft text-sm font-medium"
                 >
-                  Fechar
+                  Close
                 </button>
               </div>
             </div>

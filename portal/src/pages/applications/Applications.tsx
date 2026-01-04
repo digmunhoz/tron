@@ -72,14 +72,14 @@ function Applications() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gradient">Applications</h1>
-          <p className="text-neutral-600 mt-1">Gerenciar aplicações</p>
+          <p className="text-neutral-600 mt-1">Manage applications</p>
         </div>
         <button
           onClick={() => navigate('/applications/new')}
           className="btn-primary flex items-center gap-2"
         >
           <Plus size={18} />
-          <span>Nova Aplicação</span>
+          <span>New Application</span>
         </button>
       </div>
 
@@ -196,7 +196,7 @@ function Applications() {
 
           // Adicionar ação de deletar no final
           actions.push({
-            label: 'Deletar',
+            label: 'Delete',
             icon: <Trash2 size={14} />,
             onClick: () => handleDelete(application.uuid),
             variant: 'danger' as const,

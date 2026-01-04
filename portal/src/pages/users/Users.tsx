@@ -31,7 +31,7 @@ function Users() {
   const createMutation = useMutation({
     mutationFn: usersApi.create,
     onSuccess: () => {
-      setNotification({ type: 'success', message: 'Usuário criado com sucesso' })
+      setNotification({ type: 'success', message: 'User created successfully' })
       queryClient.invalidateQueries({ queryKey: ['users'] })
       setIsOpen(false)
       setEditingUser(null)
@@ -41,7 +41,7 @@ function Users() {
     onError: (error: any) => {
       setNotification({
         type: 'error',
-        message: error.response?.data?.detail || 'Erro ao criar usuário',
+        message: error.response?.data?.detail || 'Error creating user',
       })
       setTimeout(() => setNotification(null), 5000)
     },
@@ -50,7 +50,7 @@ function Users() {
   const updateMutation = useMutation({
     mutationFn: ({ uuid, data }: { uuid: string; data: any }) => usersApi.update(uuid, data),
     onSuccess: () => {
-      setNotification({ type: 'success', message: 'Usuário atualizado com sucesso' })
+      setNotification({ type: 'success', message: 'User updated successfully' })
       queryClient.invalidateQueries({ queryKey: ['users'] })
       setIsOpen(false)
       setEditingUser(null)
@@ -60,7 +60,7 @@ function Users() {
     onError: (error: any) => {
       setNotification({
         type: 'error',
-        message: error.response?.data?.detail || 'Erro ao atualizar usuário',
+        message: error.response?.data?.detail || 'Error updating user',
       })
       setTimeout(() => setNotification(null), 5000)
     },
@@ -69,14 +69,14 @@ function Users() {
   const deleteMutation = useMutation({
     mutationFn: usersApi.delete,
     onSuccess: () => {
-      setNotification({ type: 'success', message: 'Usuário deletado com sucesso' })
+      setNotification({ type: 'success', message: 'User deleted successfully' })
       queryClient.invalidateQueries({ queryKey: ['users'] })
       setTimeout(() => setNotification(null), 5000)
     },
     onError: (error: any) => {
       setNotification({
         type: 'error',
-        message: error.response?.data?.detail || 'Erro ao deletar usuário',
+        message: error.response?.data?.detail || 'Error deleting user',
       })
       setTimeout(() => setNotification(null), 5000)
     },
@@ -88,7 +88,7 @@ function Users() {
     onSuccess: (_, variables) => {
       setNotification({
         type: 'success',
-        message: variables.is_active ? 'Usuário ativado com sucesso' : 'Usuário desativado com sucesso',
+        message: variables.is_active ? 'User activated successfully' : 'User deactivated successfully',
       })
       queryClient.invalidateQueries({ queryKey: ['users'] })
       setTimeout(() => setNotification(null), 5000)
@@ -96,15 +96,15 @@ function Users() {
     onError: (error: any) => {
       setNotification({
         type: 'error',
-        message: error.response?.data?.detail || 'Erro ao alterar status do usuário',
+        message: error.response?.data?.detail || 'Error changing user status',
       })
       setTimeout(() => setNotification(null), 5000)
     },
   })
 
   const handleToggleActive = (user: User) => {
-    const action = user.is_active ? 'desativar' : 'ativar'
-    if (window.confirm(`Tem certeza que deseja ${action} este usuário?`)) {
+    const action = user.is_active ? 'deactivate' : 'activate'
+    if (window.confirm(`Are you sure you want to ${action} this user?`)) {
       toggleActiveMutation.mutate({ uuid: user.uuid, is_active: !user.is_active })
     }
   }
@@ -138,7 +138,7 @@ function Users() {
   }
 
   const handleDelete = (uuid: string) => {
-    if (window.confirm('Tem certeza que deseja deletar este usuário?')) {
+    if (window.confirm('Are you sure you want to delete this user?')) {
       deleteMutation.mutate(uuid)
     }
   }
@@ -147,7 +147,7 @@ function Users() {
     e.preventDefault()
 
     if (!formData.email) {
-      setNotification({ type: 'error', message: 'Email é obrigatório' })
+        setNotification({ type: 'error', message: 'Email is required' })
       setTimeout(() => setNotification(null), 5000)
       return
     }
@@ -170,7 +170,7 @@ function Users() {
     } else {
       // Criar usuário
       if (!formData.password) {
-        setNotification({ type: 'error', message: 'Senha é obrigatória para novos usuários' })
+        setNotification({ type: 'error', message: 'Password is required for new users' })
         setTimeout(() => setNotification(null), 5000)
         return
       }
@@ -186,7 +186,7 @@ function Users() {
   const getRoleBadge = (role: string) => {
     const roleConfig = {
       admin: { label: 'Admin', color: 'bg-purple-100 text-purple-700' },
-      user: { label: 'Usuário', color: 'bg-blue-100 text-blue-700' },
+      user: { label: 'User', color: 'bg-blue-100 text-blue-700' },
       viewer: { label: 'Visualizador', color: 'bg-gray-100 text-gray-700' },
     }
 
@@ -205,18 +205,18 @@ function Users() {
       <Breadcrumbs
         items={[
           { label: 'Home', path: '/' },
-          { label: 'Usuários', path: '/users' },
+          { label: 'Users', path: '/users' },
         ]}
       />
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gradient">Usuários</h1>
-          <p className="text-neutral-600 mt-1">Gerencie os usuários da plataforma</p>
+          <h1 className="text-3xl font-bold text-gradient">Users</h1>
+          <p className="text-neutral-600 mt-1">Manage platform users</p>
         </div>
         <button onClick={handleOpenCreate} className="btn-primary flex items-center gap-2">
           <Plus size={18} />
-          <span>Novo Usuário</span>
+          <span>New User</span>
         </button>
       </div>
 
@@ -243,7 +243,7 @@ function Users() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por email ou nome..."
+              placeholder="Search by email or name..."
               className="input w-full pl-10"
             />
             <Mail size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" />
@@ -267,16 +267,16 @@ function Users() {
             },
             {
               key: 'full_name',
-              label: 'Nome',
+              label: 'Name',
               render: (user) => (
                 <div className="text-sm text-neutral-700">
-                  {user.full_name || <span className="text-neutral-400 italic">Sem nome</span>}
+                  {user.full_name || <span className="text-neutral-400 italic">No name</span>}
                 </div>
               ),
             },
             {
               key: 'role',
-              label: 'Perfil',
+              label: 'Role',
               render: (user) => getRoleBadge(user.role),
             },
             {
@@ -287,12 +287,12 @@ function Users() {
                   {user.is_active ? (
                     <>
                       <UserCheck size={16} className="text-success" />
-                      <span className="text-sm text-success font-medium">Ativo</span>
+                      <span className="text-sm text-success font-medium">Active</span>
                     </>
                   ) : (
                     <>
                       <UserX size={16} className="text-error" />
-                      <span className="text-sm text-error font-medium">Inativo</span>
+                      <span className="text-sm text-error font-medium">Inactive</span>
                     </>
                   )}
                 </div>
@@ -300,7 +300,7 @@ function Users() {
             },
             {
               key: 'created_at',
-              label: 'Criado em',
+              label: 'Created at',
               render: (user) => (
                 <div className="text-sm text-neutral-600">
                   {new Date(user.created_at).toLocaleDateString('pt-BR')}
@@ -310,7 +310,7 @@ function Users() {
           ]}
           data={users}
           isLoading={isLoading}
-          emptyMessage="Nenhum usuário encontrado"
+          emptyMessage="No users found"
           loadingColor="blue"
           getRowKey={(user) => user.uuid}
           actions={(user) => {
@@ -319,21 +319,21 @@ function Users() {
             // Não permitir editar/deletar/desativar o próprio usuário
             if (user.uuid !== currentUser?.uuid) {
               actions.push({
-                label: user.is_active ? 'Desativar' : 'Ativar',
+                label: user.is_active ? 'Deactivate' : 'Activate',
                 icon: user.is_active ? <UserX size={14} /> : <UserCheck size={14} />,
                 onClick: () => handleToggleActive(user),
                 variant: user.is_active ? ('warning' as const) : ('default' as const),
               })
 
               actions.push({
-                label: 'Editar',
+                label: 'Edit',
                 icon: <Edit size={14} />,
                 onClick: () => handleEdit(user),
                 variant: 'default' as const,
               })
 
               actions.push({
-                label: 'Deletar',
+                label: 'Delete',
                 icon: <Trash2 size={14} />,
                 onClick: () => handleDelete(user.uuid),
                 variant: 'danger' as const,
@@ -351,7 +351,7 @@ function Users() {
           <div className="glass-effect-strong rounded-2xl shadow-soft-lg w-full max-w-md p-6 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gradient">
-                {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
+                {editingUser ? 'Edit User' : 'New User'}
               </h2>
               <button
                 onClick={() => {
@@ -383,7 +383,7 @@ function Users() {
 
               <div>
                 <label htmlFor="full_name" className="block text-sm font-medium text-neutral-700 mb-2">
-                  Nome Completo
+                  Full Name
                 </label>
                 <input
                   id="full_name"
@@ -391,13 +391,13 @@ function Users() {
                   value={formData.full_name}
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   className="input w-full"
-                  placeholder="Nome do usuário"
+                  placeholder="User name"
                 />
               </div>
 
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
-                  Senha {editingUser ? '(deixe em branco para não alterar)' : '*'}
+                  Password {editingUser ? '(leave blank to keep unchanged)' : '*'}
                 </label>
                 <input
                   id="password"
@@ -405,7 +405,7 @@ function Users() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="input w-full"
-                  placeholder={editingUser ? 'Nova senha (opcional)' : 'Senha do usuário'}
+                  placeholder={editingUser ? 'New password (optional)' : 'User password'}
                   required={!editingUser}
                   minLength={6}
                 />
@@ -413,7 +413,7 @@ function Users() {
 
               <div>
                 <label htmlFor="role" className="block text-sm font-medium text-neutral-700 mb-2">
-                  Perfil
+                  Role
                 </label>
                 <select
                   id="role"
@@ -421,9 +421,9 @@ function Users() {
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   className="input w-full"
                 >
-                  <option value="user">Usuário</option>
-                  <option value="admin">Administrador</option>
-                  <option value="viewer">Visualizador</option>
+                  <option value="user">User</option>
+                  <option value="admin">Administrator</option>
+                  <option value="viewer">Viewer</option>
                 </select>
               </div>
 
@@ -436,7 +436,7 @@ function Users() {
                       onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                       className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <span className="text-sm font-medium text-neutral-700">Usuário ativo</span>
+                    <span className="text-sm font-medium text-neutral-700">Active user</span>
                   </label>
                 </div>
               )}
@@ -451,7 +451,7 @@ function Users() {
                   }}
                   className="btn-secondary"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -461,10 +461,10 @@ function Users() {
                   {createMutation.isPending || updateMutation.isPending ? (
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Salvando...</span>
+                      <span>Saving...</span>
                     </div>
                   ) : (
-                    <span>{editingUser ? 'Salvar' : 'Criar'}</span>
+                    <span>{editingUser ? 'Save' : 'Create'}</span>
                   )}
                 </button>
               </div>

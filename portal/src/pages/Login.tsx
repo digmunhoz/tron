@@ -21,7 +21,7 @@ export default function Login() {
     onError: (err: any) => {
       const errorMessage = err.response?.data?.detail ||
                           err.message ||
-                          'Email ou senha incorretos. Verifique suas credenciais e tente novamente.'
+                          'Incorrect email or password. Please check your credentials and try again.'
       setError(errorMessage)
     },
   })
@@ -71,7 +71,7 @@ export default function Login() {
             </div>
           </Link>
           <h1 className="text-3xl font-bold text-gradient mb-2">Tron Platform</h1>
-          <p className="text-neutral-600">Faça login para continuar</p>
+          <p className="text-neutral-600">Sign in to continue</p>
         </div>
 
         {/* Login Form */}
@@ -104,8 +104,8 @@ export default function Login() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
-                Senha
+                <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
+                Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
@@ -130,12 +130,12 @@ export default function Login() {
               {loginMutation.isPending ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>Entrando...</span>
+                  <span>Signing in...</span>
                 </>
               ) : (
                 <>
                   <LogIn className="w-5 h-5" />
-                  <span>Entrar</span>
+                  <span>Sign In</span>
                 </>
               )}
             </button>
@@ -143,9 +143,9 @@ export default function Login() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-neutral-600">
-              Não tem uma conta?{' '}
+              Don't have an account?{' '}
               <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-                Criar conta
+                Create account
               </Link>
             </p>
           </div>
@@ -153,7 +153,7 @@ export default function Login() {
 
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-neutral-500">
-          <p>© 2024 Tron Platform. Todos os direitos reservados.</p>
+          <p>© 2024 Tron Platform. All rights reserved.</p>
         </div>
       </div>
     </div>

@@ -75,7 +75,7 @@ function Home() {
 
       <div>
         <h1 className="text-3xl font-bold text-gradient">Dashboard</h1>
-        <p className="text-neutral-600 mt-1">Visão geral da plataforma Tron</p>
+        <p className="text-neutral-600 mt-1">Tron platform overview</p>
       </div>
 
       {/* Summary Card */}
@@ -83,7 +83,7 @@ function Home() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500 uppercase tracking-wide mb-1">
-              Total de Recursos
+              Total Resources
             </p>
             <p className="text-4xl font-semibold text-slate-800">{totalItems}</p>
           </div>

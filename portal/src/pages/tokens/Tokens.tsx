@@ -29,7 +29,7 @@ function Tokens() {
   const createMutation = useMutation({
     mutationFn: tokensApi.create,
     onSuccess: (response) => {
-      setNotification({ type: 'success', message: 'Token criado com sucesso' })
+      setNotification({ type: 'success', message: 'Token created successfully' })
       setNewToken(response.token) // Guardar o token gerado
       queryClient.invalidateQueries({ queryKey: ['tokens'] })
       setIsOpen(false)
@@ -40,7 +40,7 @@ function Tokens() {
     onError: (error: any) => {
       setNotification({
         type: 'error',
-        message: error.response?.data?.detail || 'Erro ao criar token',
+        message: error.response?.data?.detail || 'Error creating token',
       })
       setTimeout(() => setNotification(null), 5000)
     },
@@ -49,7 +49,7 @@ function Tokens() {
   const updateMutation = useMutation({
     mutationFn: ({ uuid, data }: { uuid: string; data: ApiTokenUpdate }) => tokensApi.update(uuid, data),
     onSuccess: () => {
-      setNotification({ type: 'success', message: 'Token atualizado com sucesso' })
+      setNotification({ type: 'success', message: 'Token updated successfully' })
       queryClient.invalidateQueries({ queryKey: ['tokens'] })
       setIsOpen(false)
       setEditingToken(null)
@@ -59,7 +59,7 @@ function Tokens() {
     onError: (error: any) => {
       setNotification({
         type: 'error',
-        message: error.response?.data?.detail || 'Erro ao atualizar token',
+        message: error.response?.data?.detail || 'Error updating token',
       })
       setTimeout(() => setNotification(null), 5000)
     },
@@ -68,14 +68,14 @@ function Tokens() {
   const deleteMutation = useMutation({
     mutationFn: tokensApi.delete,
     onSuccess: () => {
-      setNotification({ type: 'success', message: 'Token deletado com sucesso' })
+      setNotification({ type: 'success', message: 'Token deleted successfully' })
       queryClient.invalidateQueries({ queryKey: ['tokens'] })
       setTimeout(() => setNotification(null), 5000)
     },
     onError: (error: any) => {
       setNotification({
         type: 'error',
-        message: error.response?.data?.detail || 'Erro ao deletar token',
+        message: error.response?.data?.detail || 'Error deleting token',
       })
       setTimeout(() => setNotification(null), 5000)
     },
@@ -107,7 +107,7 @@ function Tokens() {
   }
 
   const handleDelete = (uuid: string) => {
-    if (window.confirm('Tem certeza que deseja deletar este token?')) {
+    if (window.confirm('Are you sure you want to delete this token?')) {
       deleteMutation.mutate(uuid)
     }
   }
@@ -118,7 +118,7 @@ function Tokens() {
       setCopiedToken(token)
       setTimeout(() => setCopiedToken(null), 2000)
     } catch (err) {
-      setNotification({ type: 'error', message: 'Erro ao copiar token' })
+      setNotification({ type: 'error', message: 'Error copying token' })
       setTimeout(() => setNotification(null), 5000)
     }
   }
@@ -127,7 +127,7 @@ function Tokens() {
     e.preventDefault()
 
     if (!formData.name) {
-      setNotification({ type: 'error', message: 'Nome é obrigatório' })
+      setNotification({ type: 'error', message: 'Name is required' })
       setTimeout(() => setNotification(null), 5000)
       return
     }
@@ -142,7 +142,7 @@ function Tokens() {
   const getRoleBadge = (role: string) => {
     const roleConfig = {
       admin: { label: 'Admin', color: 'bg-purple-100 text-purple-700' },
-      user: { label: 'Usuário', color: 'bg-blue-100 text-blue-700' },
+      user: { label: 'User', color: 'bg-blue-100 text-blue-700' },
       viewer: { label: 'Visualizador', color: 'bg-gray-100 text-gray-700' },
     }
 
@@ -179,11 +179,11 @@ function Tokens() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gradient">Tokens</h1>
-          <p className="text-neutral-600 mt-1">Gerencie tokens de API para autenticação</p>
+          <p className="text-neutral-600 mt-1">Manage API tokens for authentication</p>
         </div>
         <button onClick={handleOpenCreate} className="btn-primary flex items-center gap-2">
           <Plus size={18} />
-          <span>Novo Token</span>
+          <span>New Token</span>
         </button>
       </div>
 
@@ -207,9 +207,9 @@ function Tokens() {
         <div className="glass-effect-strong rounded-xl p-6 border-2 border-primary-200">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-neutral-800 mb-2">Token Criado com Sucesso!</h3>
+              <h3 className="text-lg font-semibold text-neutral-800 mb-2">Token Created Successfully!</h3>
               <p className="text-sm text-neutral-600">
-                Copie este token agora. Você não poderá vê-lo novamente.
+                Copy this token now. You won't be able to see it again.
               </p>
             </div>
             <button
@@ -225,17 +225,17 @@ function Tokens() {
               <button
                 onClick={() => handleCopyToken(newToken)}
                 className="btn-secondary flex items-center gap-2 flex-shrink-0"
-                title="Copiar token"
+                title="Copy token"
               >
                 {copiedToken === newToken ? (
                   <>
                     <Check size={16} />
-                    <span>Copiado!</span>
+                    <span>Copied!</span>
                   </>
                 ) : (
                   <>
                     <Copy size={16} />
-                    <span>Copiar</span>
+                    <span>Copy</span>
                   </>
                 )}
               </button>
@@ -245,7 +245,7 @@ function Tokens() {
             <div className="flex items-start gap-2">
               <AlertCircle size={16} className="text-warning flex-shrink-0 mt-0.5" />
               <p className="text-xs text-warning">
-                <strong>Importante:</strong> Use este token no header <code className="bg-neutral-100 px-1 rounded">x-tron-token</code> para autenticação via API.
+                <strong>Important:</strong> Use this token in the <code className="bg-neutral-100 px-1 rounded">x-tron-token</code> header for API authentication.
               </p>
             </div>
           </div>
@@ -260,7 +260,7 @@ function Tokens() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por nome..."
+              placeholder="Search by name..."
               className="input w-full pl-10"
             />
             <Key size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" />
@@ -273,7 +273,7 @@ function Tokens() {
           columns={[
             {
               key: 'name',
-              label: 'Nome',
+              label: 'Name',
               render: (token) => (
                 <div className="flex items-center gap-2">
                   <Key size={16} className="text-neutral-400" />
@@ -283,7 +283,7 @@ function Tokens() {
             },
             {
               key: 'role',
-              label: 'Perfil',
+              label: 'Role',
               render: (token) => getRoleBadge(token.role),
             },
             {
@@ -292,16 +292,16 @@ function Tokens() {
               render: (token) => (
                 <div className="flex items-center gap-2">
                   {token.is_active ? (
-                    <span className="text-sm text-success font-medium">Ativo</span>
+                    <span className="text-sm text-success font-medium">Active</span>
                   ) : (
-                    <span className="text-sm text-error font-medium">Inativo</span>
+                    <span className="text-sm text-error font-medium">Inactive</span>
                   )}
                 </div>
               ),
             },
             {
               key: 'expires_at',
-              label: 'Expira em',
+              label: 'Expires at',
               render: (token) => (
                 <div className="text-sm text-neutral-600">
                   {formatDate(token.expires_at)}
@@ -310,7 +310,7 @@ function Tokens() {
             },
             {
               key: 'last_used_at',
-              label: 'Último uso',
+              label: 'Last used',
               render: (token) => (
                 <div className="text-sm text-neutral-600">
                   {formatDate(token.last_used_at)}
@@ -319,7 +319,7 @@ function Tokens() {
             },
             {
               key: 'created_at',
-              label: 'Criado em',
+              label: 'Created at',
               render: (token) => (
                 <div className="text-sm text-neutral-600">
                   {new Date(token.created_at).toLocaleDateString('pt-BR')}
@@ -329,18 +329,18 @@ function Tokens() {
           ]}
           data={tokens}
           isLoading={isLoading}
-          emptyMessage="Nenhum token encontrado"
+          emptyMessage="No tokens found"
           loadingColor="blue"
           getRowKey={(token) => token.uuid}
           actions={(token) => [
             {
-              label: 'Editar',
+              label: 'Edit',
               icon: <Edit size={14} />,
               onClick: () => handleEdit(token),
               variant: 'default' as const,
             },
             {
-              label: 'Deletar',
+              label: 'Delete',
               icon: <Trash2 size={14} />,
               onClick: () => handleDelete(token.uuid),
               variant: 'danger' as const,
@@ -355,7 +355,7 @@ function Tokens() {
           <div className="glass-effect-strong rounded-2xl shadow-soft-lg w-full max-w-md p-6 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gradient">
-                {editingToken ? 'Editar Token' : 'Novo Token'}
+                {editingToken ? 'Edit Token' : 'New Token'}
               </h2>
               <button
                 onClick={() => {
@@ -372,7 +372,7 @@ function Tokens() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-neutral-700 mb-2">
-                  Nome *
+                  Name *
                 </label>
                 <input
                   id="name"
@@ -380,14 +380,14 @@ function Tokens() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="input w-full"
-                  placeholder="Nome do token"
+                  placeholder="Token name"
                   required
                 />
               </div>
 
               <div>
                 <label htmlFor="role" className="block text-sm font-medium text-neutral-700 mb-2">
-                  Perfil
+                  Role
                 </label>
                 <select
                   id="role"
@@ -395,9 +395,9 @@ function Tokens() {
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
                   className="select w-full"
                 >
-                  <option value="user">Usuário</option>
-                  <option value="admin">Administrador</option>
-                  <option value="viewer">Visualizador</option>
+                  <option value="user">User</option>
+                  <option value="admin">Administrator</option>
+                  <option value="viewer">Viewer</option>
                 </select>
               </div>
 
@@ -410,14 +410,14 @@ function Tokens() {
                       onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                       className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <span className="text-sm font-medium text-neutral-700">Token ativo</span>
+                    <span className="text-sm font-medium text-neutral-700">Active token</span>
                   </label>
                 </div>
               )}
 
               <div>
                 <label htmlFor="expires_at" className="block text-sm font-medium text-neutral-700 mb-2">
-                  Data de Expiração (opcional)
+                  Expiration Date (optional)
                 </label>
                 <input
                   id="expires_at"
@@ -441,7 +441,7 @@ function Tokens() {
                   }}
                   className="btn-secondary"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -451,10 +451,10 @@ function Tokens() {
                   {createMutation.isPending || updateMutation.isPending ? (
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Salvando...</span>
+                      <span>Saving...</span>
                     </div>
                   ) : (
-                    <span>{editingToken ? 'Salvar' : 'Criar'}</span>
+                    <span>{editingToken ? 'Save' : 'Create'}</span>
                   )}
                 </button>
               </div>

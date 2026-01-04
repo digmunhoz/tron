@@ -65,10 +65,10 @@ function Layout() {
               <button
                 onClick={() => navigate('/profile')}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neutral-600 hover:bg-neutral-100 transition-colors"
-                title="Perfil"
+                title="Profile"
               >
                 <Settings size={16} />
-                <span className="hidden md:inline">Perfil</span>
+                <span className="hidden md:inline">Profile</span>
               </button>
               <button
                 onClick={handleLogout}
