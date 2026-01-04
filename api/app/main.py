@@ -24,6 +24,9 @@ app = FastAPI(
     title="Tron",
     summary="Platform as a Service built on top of kubernetes",
     version="1.0.0",
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    redoc_url=None,  # Disable default ReDoc to use custom one with fixed CDN URL
 )
 
 # CORS Configuration
@@ -64,3 +67,16 @@ def include_all_routers(app: FastAPI):
 
 
 include_all_routers(app)
+
+# Fix ReDoc CDN URL - use stable version instead of @next
+from fastapi.openapi.docs import get_redoc_html
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc_html():
+    """Custom ReDoc endpoint with fixed CDN URL"""
+    return get_redoc_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - ReDoc",
+        redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@2.1.3/bundles/redoc.standalone.js",
+        redoc_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+    )
