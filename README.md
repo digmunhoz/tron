@@ -115,6 +115,66 @@ The platform supports two authentication methods:
 - **Users**: User and permission management
 - **API Tokens**: Tokens for programmatic access
 
+## 🏛️ Core Concepts
+
+### Applications, Instances, and Components
+
+The platform organizes deployments using a hierarchical structure:
+
+#### **Application**
+An application represents a software project or service. It's the top-level entity that groups related deployments.
+
+**Example**: `my-api`, `frontend-app`, `data-processor`
+
+#### **Instance**
+An instance is a deployment of an application in a specific environment. Each instance defines:
+- **Image**: Docker image to deploy (e.g., `my-app:1.0.0`)
+- **Version**: Version tag of the image
+- **Environment**: Where it's deployed (dev, staging, production)
+
+**Key points**:
+- One application can have multiple instances (one per environment)
+- Each instance is unique per application + environment combination
+- Instances contain one or more components
+
+**Example**:
+- Application: `my-api`
+  - Instance 1: `my-api` in `dev` environment (image: `my-api:1.0.0`)
+  - Instance 2: `my-api` in `production` environment (image: `my-api:2.1.0`)
+
+#### **Component**
+A component is a functional part of an instance that gets deployed to Kubernetes. Each component has:
+- **Type**: `webapp`, `worker`, or `cron`
+- **Name**: Unique identifier within the instance
+- **Settings**: Component-specific configuration (JSON)
+- **Public URL**: Optional public endpoint (for webapps)
+
+**Component Types**:
+- **webapp**: Web application with HTTP/HTTPS access
+- **worker**: Background worker process
+- **cron**: Scheduled job (cron job)
+
+**Example**:
+- Instance: `my-api` in `production`
+  - Component 1: `api-server` (type: `webapp`, public URL: `https://api.example.com`)
+  - Component 2: `email-worker` (type: `worker`)
+  - Component 3: `daily-report` (type: `cron`, schedule: `0 0 * * *`)
+
+### Hierarchy Summary
+
+```
+Application
+  └── Instance (per environment)
+      ├── Component (webapp)
+      ├── Component (worker)
+      └── Component (cron)
+```
+
+This structure allows you to:
+- Deploy the same application to multiple environments with different configurations
+- Manage different component types (web, workers, cron jobs) within the same instance
+- Scale and configure each component independently
+
 ## 🔧 Development
 
 ### Project Structure
