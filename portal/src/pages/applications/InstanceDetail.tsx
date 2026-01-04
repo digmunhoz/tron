@@ -823,21 +823,21 @@ function InstanceDetail() {
                 )}
               </div>
               <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-200 px-5 pb-5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddComponentsModalOpen(false)
+                    setComponent(null)
+                    setEditingComponentUuid(null)
+                  }}
+                  className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                {component && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsAddComponentsModalOpen(false)
-                      setComponent(null)
-                      setEditingComponentUuid(null)
-                    }}
-                    className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
-                  >
-                    Cancel
-                  </button>
-                  {component && (
-                    <button
-                      type="button"
-                      onClick={async () => {
+                    onClick={async () => {
                         if (!instance || !component) return
 
                         // Validate component before submitting
@@ -990,187 +990,119 @@ function InstanceDetail() {
                           }
                         }
                       }}
-                      disabled={addComponentToInstanceMutation.isPending || updateComponentMutation.isPending}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-soft text-sm font-medium disabled:opacity-50"
-                    >
-                      {addComponentToInstanceMutation.isPending || updateComponentMutation.isPending
-                        ? (editingComponentUuid ? 'Updating...' : 'Adding...')
-                        : (editingComponentUuid ? 'Update Component' : 'Add Component')}
-                    </button>
-            )}
-          </div>
-          <div className="relative">
-            <button
-              onClick={() => setIsInstanceActionsDropdownOpen(!isInstanceActionsDropdownOpen)}
-              className="btn-secondary flex items-center gap-2"
-            >
-              <MoreVertical size={18} />
-              <span>Actions</span>
-              {isInstanceActionsDropdownOpen ? (
-                <ChevronUp size={16} />
-              ) : (
-                <ChevronDown size={16} />
-              )}
-            </button>
-            {isInstanceActionsDropdownOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setIsInstanceActionsDropdownOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 z-20">
-                  <button
-                    onClick={() => {
-                      openEditInstanceModal()
-                      setIsInstanceActionsDropdownOpen(false)
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-lg transition-colors flex items-center gap-2"
+                    disabled={addComponentToInstanceMutation.isPending || updateComponentMutation.isPending}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-soft text-sm font-medium disabled:opacity-50"
                   >
-                    <Pencil size={16} />
-                    <span>Edit Instance</span>
+                    {addComponentToInstanceMutation.isPending || updateComponentMutation.isPending
+                      ? (editingComponentUuid ? 'Updating...' : 'Adding...')
+                      : (editingComponentUuid ? 'Update Component' : 'Add Component')}
                   </button>
-                  <button
-                    onClick={() => {
-                      navigate(`/applications/${applicationUuid}/instances/${instanceUuid}/events`)
-                      setIsInstanceActionsDropdownOpen(false)
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2"
-                  >
-                    <AlertCircle size={16} />
-                    <span>Events</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (instanceUuid) {
-                        syncInstanceMutation.mutate(instanceUuid)
-                      }
-                    }}
-                    disabled={syncInstanceMutation.isPending}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed last:rounded-b-lg"
-                  >
-                    <RefreshCw size={16} className={syncInstanceMutation.isPending ? 'animate-spin' : ''} />
-                    <span>{syncInstanceMutation.isPending ? 'Syncing...' : 'Sync'}</span>
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-          <button
-            onClick={() => {
-              if (confirm('Are you sure you want to delete this instance? This action cannot be undone.')) {
-                deleteInstanceMutation.mutate(instanceUuid!)
-              }
-            }}
-            disabled={deleteInstanceMutation.isPending}
-            className="btn-secondary flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
-          >
-            <Trash2 size={18} />
-            <span>{deleteInstanceMutation.isPending ? 'Deleting...' : 'Delete Instance'}</span>
-          </button>
-        </div>
-      </div>
-        )}
-
-        {/* Edit Instance Modal */}
-        {isEditInstanceModalOpen && instance && (
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-soft-lg max-w-2xl w-full border border-slate-200/60 animate-zoom-in">
-              <div className="flex items-center justify-between p-5 border-b border-slate-200/60 bg-slate-50/50">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-800">Edit Instance</h2>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Application: {application?.name || 'N/A'} | Environment: {instance.environment.name}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsEditInstanceModalOpen(false)
-                  }}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-white rounded-md transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Image <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={instanceFormData.image}
-                    onChange={(e) => setInstanceFormData({ ...instanceFormData, image: e.target.value })}
-                    placeholder="e.g., myapp"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Version <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={instanceFormData.version}
-                    onChange={(e) => setInstanceFormData({ ...instanceFormData, version: e.target.value })}
-                    placeholder="e.g., 1.0.0"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400"
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={instanceFormData.enabled}
-                      onChange={(e) => setInstanceFormData({ ...instanceFormData, enabled: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-slate-700">Enabled</span>
-                  </label>
-                  <p className="text-xs text-slate-500 mt-1 ml-6">
-                    When enabled, the instance will be active and can receive traffic.
-                  </p>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-200 px-5 pb-5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditInstanceModalOpen(false)
-                  }}
-                  className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!instanceFormData.image || !instanceFormData.version) {
-                      setNotification({
-                        type: 'error',
-                        message: 'Image and Version are required fields',
-                      })
-                      setTimeout(() => setNotification(null), 5000)
-                      return
-                    }
-
-                    updateInstanceMutation.mutate({
-                      uuid: instance.uuid,
-                      data: {
-                        image: instanceFormData.image,
-                        version: instanceFormData.version,
-                        enabled: instanceFormData.enabled,
-                      },
-                    })
-                  }}
-                  disabled={updateInstanceMutation.isPending}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-soft text-sm font-medium disabled:opacity-50"
-                >
-                  {updateInstanceMutation.isPending ? 'Updating...' : 'Update Instance'}
-                </button>
+                )}
               </div>
             </div>
           </div>
         )}
+
+      {/* Edit Instance Modal */}
+      {isEditInstanceModalOpen && instance && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-soft-lg max-w-2xl w-full border border-slate-200/60 animate-zoom-in">
+            <div className="flex items-center justify-between p-5 border-b border-slate-200/60 bg-slate-50/50">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-800">Edit Instance</h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Application: {application?.name || 'N/A'} | Environment: {instance.environment.name}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsEditInstanceModalOpen(false)
+                }}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-white rounded-md transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Image <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={instanceFormData.image}
+                  onChange={(e) => setInstanceFormData({ ...instanceFormData, image: e.target.value })}
+                  placeholder="e.g., myapp"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Version <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={instanceFormData.version}
+                  onChange={(e) => setInstanceFormData({ ...instanceFormData, version: e.target.value })}
+                  placeholder="e.g., 1.0.0"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400"
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={instanceFormData.enabled}
+                    onChange={(e) => setInstanceFormData({ ...instanceFormData, enabled: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-slate-700">Enabled</span>
+                </label>
+                <p className="text-xs text-slate-500 mt-1 ml-6">
+                  When enabled, the instance will be active and can receive traffic.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-200 px-5 pb-5">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditInstanceModalOpen(false)
+                }}
+                className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!instanceFormData.image || !instanceFormData.version) {
+                    setNotification({
+                      type: 'error',
+                      message: 'Image and Version are required fields',
+                    })
+                    setTimeout(() => setNotification(null), 5000)
+                    return
+                  }
+
+                  updateInstanceMutation.mutate({
+                    uuid: instance.uuid,
+                    data: {
+                      image: instanceFormData.image,
+                      version: instanceFormData.version,
+                      enabled: instanceFormData.enabled,
+                    },
+                  })
+                }}
+                disabled={updateInstanceMutation.isPending}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-soft text-sm font-medium disabled:opacity-50"
+              >
+                {updateInstanceMutation.isPending ? 'Updating...' : 'Update Instance'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
