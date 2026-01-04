@@ -48,8 +48,6 @@ class WebappService:
             was_enabled = db_webapp.enabled
             will_be_enabled = webapp_update.enabled if webapp_update.enabled is not None else db_webapp.enabled
 
-            if webapp_update.name is not None:
-                db_webapp.name = webapp_update.name
             if webapp_update.is_public is not None:
                 db_webapp.is_public = webapp_update.is_public
             if webapp_update.url is not None:

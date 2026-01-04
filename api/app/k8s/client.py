@@ -43,6 +43,12 @@ K8S_API_MAPPING = {
         "delete_namespaced_horizontal_pod_autoscaler",
         "replace_namespaced_horizontal_pod_autoscaler",
     ),
+    "CronJob": (
+        client.BatchV1Api,
+        "create_namespaced_cron_job",
+        "delete_namespaced_cron_job",
+        "replace_namespaced_cron_job",
+    ),
 }
 
 
@@ -300,10 +306,11 @@ class K8sClient:
             if not kind or not api_version:
                 raise ValueError("YAML must include 'kind' and 'apiVersion' fields.")
 
-            api_class, create_method, delete_method, replace_method = K8S_API_MAPPING.get(kind)
-
-            if not api_class:
+            api_mapping = K8S_API_MAPPING.get(kind)
+            if not api_mapping:
                 raise ValueError(f"No API found for resource kind: {kind}")
+
+            api_class, create_method, delete_method, replace_method = api_mapping
 
             api_instance = api_class(self.api_client)
 

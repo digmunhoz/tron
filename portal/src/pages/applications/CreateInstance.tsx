@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { instancesApi, applicationComponentsApi, applicationsApi } from '../../services/api'
+import { instancesApi, applicationComponentsApi, applicationsApi, cronsApi } from '../../services/api'
 import type { InstanceCreate, ApplicationComponentCreate } from '../../types'
 import {
   InstanceForm,
@@ -10,6 +10,7 @@ import {
   InfoCard,
   type ComponentFormData,
   getDefaultWebappSettings,
+  getDefaultCronSettings,
 } from '../../components/applications'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
 
@@ -86,13 +87,18 @@ function CreateInstance() {
 
     // Validate components
     for (const component of components) {
-      if (component.type === 'webapp' && (!component.name || !component.url || !component.settings)) {
-        setNotification({ type: 'error', message: 'All webapp components must have name, URL, and settings' })
+      if (!component.name || !component.settings) {
+        setNotification({ type: 'error', message: 'All components must have name and settings' })
         setTimeout(() => setNotification(null), 5000)
         return
       }
-      if (component.type !== 'webapp' && !component.name) {
-        setNotification({ type: 'error', message: 'All components must have a name' })
+      if (component.type === 'webapp' && !component.url) {
+        setNotification({ type: 'error', message: 'Webapp components must have a URL' })
+        setTimeout(() => setNotification(null), 5000)
+        return
+      }
+      if (component.type === 'cron' && 'schedule' in component.settings && !component.settings.schedule) {
+        setNotification({ type: 'error', message: 'Cron components must have a schedule' })
         setTimeout(() => setNotification(null), 5000)
         return
       }
@@ -108,16 +114,27 @@ function CreateInstance() {
       // Step 2: Create components
       if (components.length > 0) {
         const componentPromises = components.map((component) => {
-          const componentData: ApplicationComponentCreate = {
-            instance_uuid: instance.uuid,
-            name: component.name,
-            type: component.type,
-            settings: component.settings,
-            is_public: component.is_public,
-            url: component.url,
-            enabled: component.enabled,
+          if (component.type === 'cron') {
+            const componentData: ApplicationComponentCreate = {
+              instance_uuid: instance.uuid,
+              name: component.name,
+              type: 'cron',
+              settings: component.settings,
+              enabled: component.enabled,
+            }
+            return cronsApi.create(componentData)
+          } else {
+            const componentData: ApplicationComponentCreate = {
+              instance_uuid: instance.uuid,
+              name: component.name,
+              type: 'webapp',
+              settings: component.settings,
+              is_public: component.is_public,
+              url: component.url,
+              enabled: component.enabled,
+            }
+            return createComponentMutation.mutateAsync(componentData)
           }
-          return createComponentMutation.mutateAsync(componentData)
         })
 
         await Promise.all(componentPromises)

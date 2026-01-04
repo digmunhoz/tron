@@ -217,6 +217,21 @@ CLUSTER_UUID=$(echo "$CLUSTERS_RESPONSE" | jq -r ".[] | select(.name == \"${CLUS
 
 if [ -n "$CLUSTER_UUID" ] && [ "$CLUSTER_UUID" != "null" ]; then
     echo -e "${GREEN}✓ Cluster '${CLUSTER_NAME}' já existe${NC}"
+    UPDATE_CLUSTER_RESPONSE=$(curl -s -X PUT "${API_URL}/clusters/${CLUSTER_UUID}" \
+        -H "Content-Type: application/json" \
+        -H "x-tron-token: ${API_TOKEN}" \
+        -d "{
+            \"name\": \"${CLUSTER_NAME}\",
+            \"api_address\": \"${CLUSTER_API_ADDRESS}\",
+            \"token\": \"${CLUSTER_TOKEN}\",
+            \"environment_uuid\": \"${ENVIRONMENT_UUID}\"
+        }")
+        if [ -z "$UPDATE_CLUSTER_RESPONSE" ] || [ "$UPDATE_CLUSTER_RESPONSE" = "null" ]; then
+            echo -e "${RED}❌ Erro ao atualizar cluster${NC}"
+            echo "$UPDATE_CLUSTER_RESPONSE"
+            exit 1
+        fi
+        echo -e "${GREEN}✓ Cluster '${CLUSTER_NAME}' atualizado com sucesso${NC}"
 else
     if [ -z "$CLUSTER_TOKEN" ]; then
         echo -e "${YELLOW}⚠️  Token do cluster não disponível. Pulando criação do cluster${NC}"

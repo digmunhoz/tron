@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Trash2, Plus, Pencil, ChevronDown, ChevronRight, Server } from 'lucide-react'
-import { applicationComponentsApi, instancesApi, applicationsApi } from '../../services/api'
+import { X, Trash2, Plus, Pencil, ChevronDown, ChevronRight, Server, ChevronUp } from 'lucide-react'
+import { applicationComponentsApi, instancesApi, applicationsApi, cronsApi } from '../../services/api'
 import type { ApplicationComponentCreate, InstanceComponent } from '../../types'
-import { ComponentForm, type ComponentFormData, getDefaultWebappSettings } from '../../components/applications'
+import { ComponentForm, type ComponentFormData, getDefaultWebappSettings, getDefaultCronSettings } from '../../components/applications'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
 import DataTable from '../../components/DataTable'
 
@@ -30,6 +30,7 @@ function InstanceDetail() {
   const [isAddComponentsModalOpen, setIsAddComponentsModalOpen] = useState(false)
   const [isEditInstanceModalOpen, setIsEditInstanceModalOpen] = useState(false)
   const [expandedTypes, setExpandedTypes] = useState<Set<'webapp' | 'worker' | 'cron'>>(new Set(['webapp', 'worker', 'cron']))
+  const [isComponentTypeDropdownOpen, setIsComponentTypeDropdownOpen] = useState(false)
 
   const [component, setComponent] = useState<ComponentFormData | null>(null)
   const [instanceFormData, setInstanceFormData] = useState<{
@@ -42,28 +43,52 @@ function InstanceDetail() {
     enabled: true,
   })
 
-  const initializeComponent = () => {
+  const initializeComponent = (type: 'webapp' | 'worker' | 'cron' = 'webapp') => {
     setEditingComponentUuid(null)
-    setComponent({
-      name: '',
-      type: 'webapp',
-      url: null,
-      is_public: false,
-      enabled: true,
-      settings: getDefaultWebappSettings(),
-    })
+    if (type === 'webapp') {
+      setComponent({
+        name: '',
+        type: 'webapp',
+        url: null,
+        is_public: false,
+        enabled: true,
+        settings: getDefaultWebappSettings(),
+      })
+    } else {
+      setComponent({
+        name: '',
+        type: type,
+        url: null,
+        is_public: false,
+        enabled: true,
+        settings: getDefaultCronSettings(),
+      })
+    }
   }
 
   const loadComponentForEdit = (componentData: InstanceComponent) => {
     setEditingComponentUuid(componentData.uuid)
-    setComponent({
-      name: componentData.name,
-      type: componentData.type as 'webapp' | 'worker' | 'cron',
-      url: componentData.url,
-      is_public: false, // TODO: get from component if available
-      enabled: componentData.enabled,
-      settings: (componentData.settings as ComponentFormData['settings']) || getDefaultWebappSettings(),
-    })
+    const componentType = componentData.type as 'webapp' | 'worker' | 'cron'
+
+    if (componentType === 'webapp') {
+      setComponent({
+        name: componentData.name,
+        type: 'webapp',
+        url: componentData.url,
+        is_public: false, // TODO: get from component if available
+        enabled: componentData.enabled,
+        settings: (componentData.settings as ComponentFormData['settings']) || getDefaultWebappSettings(),
+      })
+    } else {
+      setComponent({
+        name: componentData.name,
+        type: componentType,
+        url: null,
+        is_public: false,
+        enabled: componentData.enabled,
+        settings: (componentData.settings as ComponentFormData['settings']) || getDefaultCronSettings(),
+      })
+    }
     setIsAddComponentsModalOpen(true)
   }
 
@@ -277,6 +302,42 @@ function InstanceDetail() {
     },
   ], [])
 
+  // Colunas específicas para cron
+  const cronColumns = useMemo(() => [
+    {
+      key: 'command',
+      label: 'Command',
+      render: (component: InstanceComponent) => {
+        const command = (component.settings as any)?.command
+        if (!command) {
+          return <div className="text-sm text-slate-400">No command</div>
+        }
+        // Se for array, juntar com espaços; se for string, exibir diretamente
+        const commandStr = Array.isArray(command) ? command.join(' ') : command
+        return (
+          <div className="text-sm text-slate-600 font-mono text-xs">
+            {commandStr}
+          </div>
+        )
+      },
+    },
+    {
+      key: 'schedule',
+      label: 'Schedule',
+      render: (component: InstanceComponent) => {
+        const schedule = (component.settings as any)?.schedule
+        if (!schedule) {
+          return <div className="text-sm text-slate-400">No schedule</div>
+        }
+        return (
+          <div className="text-sm text-slate-600 font-mono text-xs">
+            {schedule}
+          </div>
+        )
+      },
+    },
+  ], [])
+
   // Função para obter colunas baseado no tipo
   const getColumnsForType = (componentType: 'webapp' | 'worker' | 'cron') => {
     if (componentType === 'webapp') {
@@ -285,6 +346,16 @@ function InstanceDetail() {
         baseColumns[1], // url
         webappColumns[0], // endpoints
         webappColumns[1], // visibility
+        baseColumns[2], // cpu
+        baseColumns[3], // memory
+        baseColumns[4], // status
+      ]
+    }
+    if (componentType === 'cron') {
+      return [
+        baseColumns[0], // name
+        cronColumns[0], // command
+        cronColumns[1], // schedule
         baseColumns[2], // cpu
         baseColumns[3], // memory
         baseColumns[4], // status
@@ -380,16 +451,69 @@ function InstanceDetail() {
             <Trash2 size={18} />
             <span>{deleteInstanceMutation.isPending ? 'Deleting...' : 'Delete Instance'}</span>
           </button>
-          <button
-            onClick={() => {
-              initializeComponent()
-              setIsAddComponentsModalOpen(true)
-            }}
-            className="btn-primary flex items-center gap-2"
-          >
-            <Plus size={18} />
-            <span>Add Component</span>
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setIsComponentTypeDropdownOpen(!isComponentTypeDropdownOpen)}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Plus size={18} />
+              <span>Add Component</span>
+              {isComponentTypeDropdownOpen ? (
+                <ChevronUp size={16} />
+              ) : (
+                <ChevronDown size={16} />
+              )}
+            </button>
+            {isComponentTypeDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setIsComponentTypeDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 z-20">
+                  <button
+                    onClick={() => {
+                      initializeComponent('webapp')
+                      setIsAddComponentsModalOpen(true)
+                      setIsComponentTypeDropdownOpen(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Plus size={16} />
+                      <span>Webapp</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      initializeComponent('cron')
+                      setIsAddComponentsModalOpen(true)
+                      setIsComponentTypeDropdownOpen(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Plus size={16} />
+                      <span>Cron</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      initializeComponent('worker')
+                      setIsAddComponentsModalOpen(true)
+                      setIsComponentTypeDropdownOpen(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Plus size={16} />
+                      <span>Worker</span>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -498,7 +622,9 @@ function InstanceDetail() {
               <div className="flex items-center justify-between p-5 border-b border-slate-200/60 bg-slate-50/50 sticky top-0 z-10">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-800">
-                    {editingComponentUuid ? 'Edit Component' : 'Add Component'} - {instance.environment.name}
+                    {editingComponentUuid
+                      ? `Edit ${component?.type ? component.type.charAt(0).toUpperCase() + component.type.slice(1) : 'Component'}`
+                      : `Add ${component?.type ? component.type.charAt(0).toUpperCase() + component.type.slice(1) : 'Component'}`} - {instance.environment.name}
                   </h2>
                   <p className="text-xs text-slate-500 mt-1">Image: {instance.image}:{instance.version}</p>
                 </div>
@@ -519,7 +645,10 @@ function InstanceDetail() {
                     component={component}
                     onChange={setComponent}
                     showRemoveButton={false}
-                    title={editingComponentUuid ? 'Edit Component' : 'Add Component'}
+                    isEditing={!!editingComponentUuid}
+                    title={editingComponentUuid
+                      ? `Edit ${component.type.charAt(0).toUpperCase() + component.type.slice(1)}`
+                      : `Add ${component.type.charAt(0).toUpperCase() + component.type.slice(1)}`}
                   />
                 ) : (
                   <p className="text-sm text-slate-500 text-center py-4">Component form will appear here.</p>
@@ -544,19 +673,36 @@ function InstanceDetail() {
                         if (!instance || !component) return
 
                         // Validate component before submitting
-                        if (component.type !== 'webapp') {
+                        if (!editingComponentUuid && !component.name) {
                           setNotification({
                             type: 'error',
-                            message: 'Only webapp components are supported at this time',
+                            message: 'Component name is required',
+                          })
+                          setTimeout(() => setNotification(null), 5000)
+                          return
+                        }
+                        if (!component.settings) {
+                          setNotification({
+                            type: 'error',
+                            message: 'Component settings are required',
                           })
                           setTimeout(() => setNotification(null), 5000)
                           return
                         }
 
-                        if (!component.name || !component.url || !component.settings) {
+                        if (component.type === 'webapp' && !component.url) {
                           setNotification({
                             type: 'error',
-                            message: 'Component is missing required fields (name, URL, and settings)',
+                            message: 'Webapp components must have a URL',
+                          })
+                          setTimeout(() => setNotification(null), 5000)
+                          return
+                        }
+
+                        if (component.type === 'cron' && 'schedule' in component.settings && !component.settings.schedule) {
+                          setNotification({
+                            type: 'error',
+                            message: 'Cron components must have a schedule',
                           })
                           setTimeout(() => setNotification(null), 5000)
                           return
@@ -564,27 +710,73 @@ function InstanceDetail() {
 
                         if (editingComponentUuid) {
                           // Update existing component
-                          const componentData: Partial<ApplicationComponentCreate> = {
-                            name: component.name,
-                            type: 'webapp',
-                            settings: component.settings,
-                            is_public: component.is_public,
-                            url: component.url!,
-                            enabled: component.enabled,
+                          if (component.type === 'cron') {
+                            const componentData: Partial<ApplicationComponentCreate> = {
+                              type: 'cron',
+                              settings: component.settings,
+                              enabled: component.enabled,
+                            }
+                            cronsApi.update(editingComponentUuid, componentData).then(() => {
+                              setNotification({ type: 'success', message: 'Component updated successfully' })
+                              queryClient.invalidateQueries({ queryKey: ['instances'] })
+                              queryClient.invalidateQueries({ queryKey: ['application-components'] })
+                              setEditingComponentUuid(null)
+                              setComponent(null)
+                              setIsAddComponentsModalOpen(false)
+                              setTimeout(() => setNotification(null), 5000)
+                            }).catch((error: any) => {
+                              setNotification({
+                                type: 'error',
+                                message: error.response?.data?.detail || 'Error updating component',
+                              })
+                              setTimeout(() => setNotification(null), 5000)
+                            })
+                          } else {
+                            const componentData: Partial<ApplicationComponentCreate> = {
+                              type: 'webapp',
+                              settings: component.settings,
+                              is_public: component.is_public,
+                              url: component.url!,
+                              enabled: component.enabled,
+                            }
+                            updateComponentMutation.mutate({ uuid: editingComponentUuid, data: componentData })
                           }
-                          updateComponentMutation.mutate({ uuid: editingComponentUuid, data: componentData })
                         } else {
                           // Create new component
-                          const componentData: ApplicationComponentCreate = {
-                            instance_uuid: instance.uuid,
-                            name: component.name,
-                            type: 'webapp',
-                            settings: component.settings,
-                            is_public: component.is_public,
-                            url: component.url!,
-                            enabled: component.enabled,
+                          if (component.type === 'cron') {
+                            const componentData: ApplicationComponentCreate = {
+                              instance_uuid: instance.uuid,
+                              name: component.name,
+                              type: 'cron',
+                              settings: component.settings,
+                              enabled: component.enabled,
+                            }
+                            cronsApi.create(componentData).then(() => {
+                              setNotification({ type: 'success', message: 'Component added successfully' })
+                              queryClient.invalidateQueries({ queryKey: ['instances'] })
+                              queryClient.invalidateQueries({ queryKey: ['application-components'] })
+                              setComponent(null)
+                              setIsAddComponentsModalOpen(false)
+                              setTimeout(() => setNotification(null), 5000)
+                            }).catch((error: any) => {
+                              setNotification({
+                                type: 'error',
+                                message: error.response?.data?.detail || 'Error adding component',
+                              })
+                              setTimeout(() => setNotification(null), 5000)
+                            })
+                          } else {
+                            const componentData: ApplicationComponentCreate = {
+                              instance_uuid: instance.uuid,
+                              name: component.name,
+                              type: 'webapp',
+                              settings: component.settings,
+                              is_public: component.is_public,
+                              url: component.url!,
+                              enabled: component.enabled,
+                            }
+                            addComponentToInstanceMutation.mutate(componentData)
                           }
-                          addComponentToInstanceMutation.mutate(componentData)
                         }
                       }}
                       disabled={addComponentToInstanceMutation.isPending || updateComponentMutation.isPending}

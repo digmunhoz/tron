@@ -36,8 +36,7 @@ class ApplicationComponentCreate(ApplicationComponent):
     enabled: bool = True
 
 
-class ApplicationComponentUpdate(ApplicationComponent):
-    name: str | None = None
+class ApplicationComponentUpdate(BaseModel):
     type: WebappType | None = None
     settings: Dict[str, Any] | None = None
     is_public: bool | None = None

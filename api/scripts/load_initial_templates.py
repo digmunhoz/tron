@@ -71,7 +71,9 @@ def get_variables_schema() -> str:
         "initial_interval": "number",
         "interval": "number",
         "timeout": "number"
-      }
+      },
+      "schedule": "string",
+      "command": "array"
     }
   },
   "environment": {
@@ -82,29 +84,40 @@ def get_variables_schema() -> str:
 
 def load_templates(db: Session):
     """Carrega os templates iniciais na tabela templates."""
-    templates_dir = Path(__file__).parent.parent / "app" / "k8s" / "templates" / "webapp"
+    templates_base_dir = Path(__file__).parent.parent / "app" / "k8s" / "templates"
+    webapp_dir = templates_base_dir / "webapp"
+    cron_dir = templates_base_dir / "cron"
 
     templates_data = [
+        # Templates Webapp
         {
             "name": "Webapp Deployment",
             "description": "Template de Deployment para componentes webapp",
             "category": "webapp",
-            "file_path": templates_dir / "deployment.yaml.j2",
+            "file_path": webapp_dir / "deployment.yaml.j2",
             "render_order": 1,
         },
         {
             "name": "Webapp Service",
             "description": "Template de Service para componentes webapp",
             "category": "webapp",
-            "file_path": templates_dir / "service.yaml.j2",
+            "file_path": webapp_dir / "service.yaml.j2",
             "render_order": 2,
         },
         {
             "name": "Webapp HPA",
             "description": "Template de HorizontalPodAutoscaler para componentes webapp",
             "category": "webapp",
-            "file_path": templates_dir / "hpa.yaml.j2",
+            "file_path": webapp_dir / "hpa.yaml.j2",
             "render_order": 3,
+        },
+        # Templates Cron
+        {
+            "name": "Cron CronJob",
+            "description": "Template de CronJob para componentes cron",
+            "category": "cron",
+            "file_path": cron_dir / "cron.yaml.j2",
+            "render_order": 1,
         },
     ]
 
@@ -129,7 +142,7 @@ def load_templates(db: Session):
                 db.query(ComponentTemplateConfigModel.ComponentTemplateConfig)
                 .filter(
                     ComponentTemplateConfigModel.ComponentTemplateConfig.template_id == existing_template.id,
-                    ComponentTemplateConfigModel.ComponentTemplateConfig.component_type == "webapp"
+                    ComponentTemplateConfigModel.ComponentTemplateConfig.component_type == template_data["category"]
                 )
                 .first()
             )
@@ -139,7 +152,7 @@ def load_templates(db: Session):
                 try:
                     config = ComponentTemplateConfigModel.ComponentTemplateConfig(
                         uuid=uuid4(),
-                        component_type="webapp",
+                        component_type=template_data["category"],
                         template_id=existing_template.id,
                         render_order=template_data["render_order"],
                         enabled="true",
@@ -183,7 +196,7 @@ def load_templates(db: Session):
         # Criar a configuração de component_template_config
         config = ComponentTemplateConfigModel.ComponentTemplateConfig(
             uuid=uuid4(),
-            component_type="webapp",
+            component_type=template_data["category"],
             template_id=new_template.id,
             render_order=template_data["render_order"],
             enabled="true",

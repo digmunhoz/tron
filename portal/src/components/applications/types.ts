@@ -30,13 +30,24 @@ export interface WebappSettings {
   memory: number
 }
 
+export interface CronSettings {
+  envs: Array<{
+    key: string
+    value: string
+  }>
+  command: string | null
+  cpu: number
+  memory: number
+  schedule: string
+}
+
 export interface ComponentFormData {
   name: string
   type: 'webapp' | 'worker' | 'cron'
   url: string | null
   is_public: boolean
   enabled: boolean
-  settings: WebappSettings | null
+  settings: WebappSettings | CronSettings | null
 }
 
 export const getDefaultWebappSettings = (): WebappSettings => ({
@@ -68,5 +79,13 @@ export const getDefaultWebappSettings = (): WebappSettings => ({
   },
   cpu: 0.5,
   memory: 512,
+})
+
+export const getDefaultCronSettings = (): CronSettings => ({
+  envs: [],
+  command: null,
+  cpu: 0.5,
+  memory: 512,
+  schedule: '0 0 * * *', // Daily at midnight
 })
 

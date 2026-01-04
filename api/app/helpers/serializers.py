@@ -4,6 +4,37 @@ def serialize_application_component(application_component):
     Serializa um ApplicationComponent para uso nos templates Kubernetes.
     Inclui informações do componente, instância, aplicação e ambiente.
     """
+    # Fazer uma cópia do settings para não modificar o original
+    import copy
+    settings = copy.deepcopy(application_component.settings) if application_component.settings else {}
+
+    # Garantir que command seja sempre uma lista quando não for None
+    # Isso é necessário porque o schema pode retornar string, lista ou None
+    # mas os templates esperam lista ou None
+    if settings and 'command' in settings:
+        command = settings.get('command')
+        if command is not None:
+            # Se já for uma lista, manter como está
+            if isinstance(command, list):
+                pass  # Já é lista
+            # Se for string, converter para lista (já foi processado pelo schema, mas garantir)
+            elif isinstance(command, str):
+                import shlex
+                command_str = command.strip()
+                if command_str:
+                    settings['command'] = shlex.split(command_str)
+                else:
+                    settings['command'] = None
+            # Se for None, manter None
+        else:
+            settings['command'] = None
+
+    # Garantir que todos os campos do settings sejam preservados
+    # Isso é importante para campos como schedule, cpu, memory, envs, etc.
+    # O deepcopy já faz isso, mas garantimos explicitamente
+    if not settings:
+        settings = {}
+
     return {
         "component_name": application_component.name,
         "component_uuid": str(application_component.uuid),
@@ -17,7 +48,7 @@ def serialize_application_component(application_component):
         "is_public": application_component.is_public,
         "url": application_component.url,
         "enabled": application_component.enabled,
-        "settings": application_component.settings or {}
+        "settings": settings
     }
 
 # Mantido para compatibilidade (deprecated)

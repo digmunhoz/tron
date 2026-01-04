@@ -47,7 +47,7 @@ spec:
                 - "teste"
             topologyKey: "kubernetes.io/hostname"
       containers:
-      - name: "teste"
+      - name: "{{ application.component_name }}"
         {% if application.settings.command -%}
         command:
         - /bin/sh
