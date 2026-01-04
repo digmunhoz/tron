@@ -14,6 +14,7 @@ import {
   Settings,
   Users,
   Key,
+  Search,
 } from 'lucide-react'
 import { Logo } from './Logo'
 import { useAuth } from '../contexts/AuthContext'
@@ -33,6 +34,7 @@ const adminNavItems = [
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
@@ -42,10 +44,33 @@ function Layout() {
     navigate('/login')
   }
 
+  // Filtrar itens do menu baseado na pesquisa
+  const allNavItems = [...generalNavItems, ...(user?.role === 'admin' ? adminNavItems : [])]
+  const filteredGeneralItems = generalNavItems.filter((item) =>
+    item.label.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+  const filteredAdminItems =
+    user?.role === 'admin'
+      ? adminNavItems.filter((item) => item.label.toLowerCase().includes(searchQuery.toLowerCase()))
+      : []
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      const matchedItem = allNavItems.find((item) =>
+        item.label.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      if (matchedItem) {
+        navigate(matchedItem.path)
+        setSearchQuery('')
+        setSidebarOpen(false)
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="glass-effect-strong sticky top-0 z-50 border-b border-neutral-200/80">
+      <header className="glass-effect-strong fixed top-0 left-0 right-0 z-50 border-b border-neutral-200/80">
         <div className="flex items-center justify-between px-4 py-3 md:px-8">
           <div className="flex items-center gap-3">
             <button
@@ -83,22 +108,41 @@ function Layout() {
         </div>
       </header>
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 mt-16">
         {/* Sidebar */}
         <aside
           className={`
-            fixed md:static inset-y-0 left-0 z-40
+            fixed inset-y-0 left-0 z-40
             w-64 flex-shrink-0 glass-effect-strong border-r border-neutral-200/80
             transform transition-transform duration-300 ease-in-out
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-            pt-16 md:pt-0
+            pt-16
+            overflow-y-auto
           `}
         >
           <nav className="p-4 space-y-6">
+            {/* Barra de Pesquisa */}
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search menu..."
+                className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-neutral-700 placeholder-neutral-400"
+              />
+            </div>
+
             {/* Menu Geral */}
             <div>
+              <div className="flex items-center gap-2 px-3 mb-3">
+                <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                  General
+                </span>
+              </div>
               <ul className="space-y-1.5">
-                {generalNavItems.map((item) => {
+                {filteredGeneralItems.map((item) => {
                   const Icon = item.icon
                   const isActive = location.pathname === item.path
                   return (
@@ -135,7 +179,7 @@ function Layout() {
                   </span>
                 </div>
                 <ul className="space-y-1.5">
-                  {adminNavItems.map((item) => {
+                  {filteredAdminItems.map((item) => {
                     const Icon = item.icon
                     const isActive = location.pathname === item.path
                     return (
@@ -174,7 +218,7 @@ function Layout() {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 min-w-0 p-6 md:p-8 lg:p-10 pb-24 overflow-x-hidden">
+        <main className="flex-1 min-w-0 p-6 md:p-8 lg:p-10 pb-24 overflow-x-hidden md:ml-64">
           <div className="max-w-7xl mx-auto w-full">
             <Outlet />
           </div>
@@ -182,7 +226,7 @@ function Layout() {
       </div>
 
       {/* Footer */}
-      <footer className="glass-effect-strong border-t border-neutral-200/80 mt-auto">
+      <footer className="glass-effect-strong border-t border-neutral-200/80 mt-auto md:ml-64">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-sm text-neutral-600">
