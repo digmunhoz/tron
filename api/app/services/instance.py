@@ -320,6 +320,137 @@ class InstanceService:
         return events
 
     @staticmethod
+    def sync_instance(db: Session, uuid: UUID):
+        """
+        Sincroniza todos os componentes de uma instância com o Kubernetes.
+        Reaplica todos os componentes habilitados e remove os desabilitados.
+        """
+        # Buscar a instância com relacionamentos
+        db_instance = (
+            db.query(InstanceModel.Instance)
+            .options(
+                joinedload(InstanceModel.Instance.application),
+                joinedload(InstanceModel.Instance.environment),
+                joinedload(InstanceModel.Instance.components)
+            )
+            .filter(InstanceModel.Instance.uuid == uuid)
+            .first()
+        )
+
+        if db_instance is None:
+            raise HTTPException(status_code=404, detail="Instance not found")
+
+        if not db_instance.enabled:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot sync disabled instance"
+            )
+
+        # Buscar todos os componentes associados à instância
+        components = db_instance.components
+
+        if not components:
+            return {
+                "detail": "Instance has no components to sync",
+                "synced_components": 0,
+                "errors": []
+            }
+
+        # Buscar um cluster_instance de qualquer componente da instância para obter o cluster
+        # Todos os componentes da mesma instância devem estar no mesmo cluster
+        cluster_instance = None
+        for component in components:
+            cluster_instance = (
+                db.query(ClusterInstanceModel.ClusterInstance)
+                .filter(ClusterInstanceModel.ClusterInstance.application_component_id == component.id)
+                .first()
+            )
+            if cluster_instance:
+                break
+
+        if not cluster_instance:
+            raise HTTPException(
+                status_code=404,
+                detail="Instance components are not deployed to any cluster"
+            )
+
+        cluster = cluster_instance.cluster
+        application_name = db_instance.application.name
+
+        # Criar cliente Kubernetes
+        k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+
+        # Verificar e criar namespace com o nome da aplicação se não existir
+        k8s_client.ensure_namespace_exists(application_name)
+
+        synced_count = 0
+        errors = []
+
+        # Sincronizar cada componente
+        for component in components:
+            try:
+                # Buscar cluster_instance associado ao componente
+                component_cluster_instance = (
+                    db.query(ClusterInstanceModel.ClusterInstance)
+                    .filter(ClusterInstanceModel.ClusterInstance.application_component_id == component.id)
+                    .first()
+                )
+
+                if not component_cluster_instance:
+                    errors.append({
+                        "component": component.name,
+                        "error": "Component not associated with any cluster"
+                    })
+                    continue
+
+                # Serializar o componente para os templates
+                application_component_serialized = serialize_application_component(component)
+                component_type = component.type.value if hasattr(component.type, 'value') else str(component.type)
+
+                # Buscar settings do environment (não do componente)
+                instance = component.instance
+                settings = (
+                    db.query(SettingsModel.Settings)
+                    .filter(SettingsModel.Settings.environment_id == instance.environment_id)
+                    .all()
+                )
+                settings_serialized = serialize_settings(settings)
+
+                if component.enabled:
+                    # Reaplicar componente habilitado no Kubernetes
+                    kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
+                        application_component_serialized, component_type, settings_serialized, db=db
+                    )
+                    k8s_client.apply_or_delete_yaml_to_k8s(
+                        kubernetes_payload, operation="upsert"
+                    )
+                    synced_count += 1
+                else:
+                    # Remover componente desabilitado do Kubernetes
+                    kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
+                        application_component_serialized, component_type, settings_serialized, db=db
+                    )
+                    k8s_client.apply_or_delete_yaml_to_k8s(
+                        kubernetes_payload, operation="delete"
+                    )
+                    synced_count += 1
+
+            except Exception as e:
+                error_msg = str(e)
+                errors.append({
+                    "component": component.name,
+                    "error": error_msg
+                })
+                print(f"Error syncing component '{component.name}': {e}")
+
+        return {
+            "detail": f"Instance sync completed. {synced_count} component(s) synced.",
+            "synced_components": synced_count,
+            "total_components": len(components),
+            "errors": errors
+        }
+
+    @staticmethod
     def delete_instance(db: Session, uuid: UUID):
         # Buscar a instância com relacionamentos
         db_instance = (

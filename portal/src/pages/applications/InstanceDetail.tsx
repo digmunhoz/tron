@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Trash2, Plus, Pencil, ChevronDown, ChevronRight, Server, ChevronUp, AlertCircle } from 'lucide-react'
+import { X, Trash2, Plus, Pencil, ChevronDown, ChevronRight, Server, ChevronUp, AlertCircle, MoreVertical, RefreshCw } from 'lucide-react'
 import { applicationComponentsApi, instancesApi, applicationsApi, cronsApi, workersApi } from '../../services/api'
 import type { ApplicationComponentCreate, InstanceComponent } from '../../types'
 import { ComponentForm, type ComponentFormData, getDefaultWebappSettings, getDefaultCronSettings, getDefaultWorkerSettings } from '../../components/applications'
@@ -32,6 +32,7 @@ function InstanceDetail() {
   const [isEditInstanceModalOpen, setIsEditInstanceModalOpen] = useState(false)
   const [expandedTypes, setExpandedTypes] = useState<Set<'webapp' | 'worker' | 'cron'>>(new Set(['webapp', 'worker', 'cron']))
   const [isComponentTypeDropdownOpen, setIsComponentTypeDropdownOpen] = useState(false)
+  const [isInstanceActionsDropdownOpen, setIsInstanceActionsDropdownOpen] = useState(false)
 
   const [component, setComponent] = useState<ComponentFormData | null>(null)
   const [instanceFormData, setInstanceFormData] = useState<{
@@ -220,6 +221,36 @@ function InstanceDetail() {
         type: 'error',
         message: error.response?.data?.detail || 'Error deleting instance',
       })
+      setTimeout(() => setNotification(null), 5000)
+    },
+  })
+
+  const syncInstanceMutation = useMutation({
+    mutationFn: instancesApi.sync,
+    onSuccess: (data) => {
+      const errorCount = data.errors?.length || 0
+      if (errorCount > 0) {
+        setNotification({
+          type: 'error',
+          message: `Sync completed with ${errorCount} error(s). ${data.synced_components}/${data.total_components} components synced.`,
+        })
+      } else {
+        setNotification({
+          type: 'success',
+          message: `Sync completed successfully. ${data.synced_components} component(s) synced.`,
+        })
+      }
+      queryClient.invalidateQueries({ queryKey: ['instances'] })
+      queryClient.invalidateQueries({ queryKey: ['application-components'] })
+      setIsInstanceActionsDropdownOpen(false)
+      setTimeout(() => setNotification(null), 5000)
+    },
+    onError: (error: any) => {
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.detail || 'Error syncing instance',
+      })
+      setIsInstanceActionsDropdownOpen(false)
       setTimeout(() => setNotification(null), 5000)
     },
   })
@@ -511,20 +542,6 @@ function InstanceDetail() {
         />
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate(`/applications/${applicationUuid}/instances/${instanceUuid}/events`)}
-            className="btn-secondary flex items-center gap-2"
-          >
-            <AlertCircle size={18} />
-            <span>Events</span>
-          </button>
-          <button
-            onClick={openEditInstanceModal}
-            className="btn-secondary flex items-center gap-2"
-          >
-            <Pencil size={18} />
-            <span>Edit Instance</span>
-          </button>
-          <button
             onClick={() => {
               if (confirm('Are you sure you want to delete this instance? This action cannot be undone.')) {
                 deleteInstanceMutation.mutate(instanceUuid!)
@@ -594,6 +611,62 @@ function InstanceDetail() {
                       <Plus size={16} />
                       <span>Worker</span>
                     </div>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setIsInstanceActionsDropdownOpen(!isInstanceActionsDropdownOpen)}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <MoreVertical size={18} />
+              <span>Actions</span>
+              {isInstanceActionsDropdownOpen ? (
+                <ChevronUp size={16} />
+              ) : (
+                <ChevronDown size={16} />
+              )}
+            </button>
+            {isInstanceActionsDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setIsInstanceActionsDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 z-20">
+                  <button
+                    onClick={() => {
+                      openEditInstanceModal()
+                      setIsInstanceActionsDropdownOpen(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-lg transition-colors flex items-center gap-2"
+                  >
+                    <Pencil size={16} />
+                    <span>Edit Instance</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate(`/applications/${applicationUuid}/instances/${instanceUuid}/events`)
+                      setIsInstanceActionsDropdownOpen(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                  >
+                    <AlertCircle size={16} />
+                    <span>Events</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (instanceUuid) {
+                        syncInstanceMutation.mutate(instanceUuid)
+                      }
+                    }}
+                    disabled={syncInstanceMutation.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed last:rounded-b-lg"
+                  >
+                    <RefreshCw size={16} className={syncInstanceMutation.isPending ? 'animate-spin' : ''} />
+                    <span>{syncInstanceMutation.isPending ? 'Syncing...' : 'Sync'}</span>
                   </button>
                 </div>
               </>
@@ -924,10 +997,78 @@ function InstanceDetail() {
                         ? (editingComponentUuid ? 'Updating...' : 'Adding...')
                         : (editingComponentUuid ? 'Update Component' : 'Add Component')}
                     </button>
-                  )}
-              </div>
-            </div>
+            )}
           </div>
+          <div className="relative">
+            <button
+              onClick={() => setIsInstanceActionsDropdownOpen(!isInstanceActionsDropdownOpen)}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <MoreVertical size={18} />
+              <span>Actions</span>
+              {isInstanceActionsDropdownOpen ? (
+                <ChevronUp size={16} />
+              ) : (
+                <ChevronDown size={16} />
+              )}
+            </button>
+            {isInstanceActionsDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setIsInstanceActionsDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 z-20">
+                  <button
+                    onClick={() => {
+                      openEditInstanceModal()
+                      setIsInstanceActionsDropdownOpen(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-lg transition-colors flex items-center gap-2"
+                  >
+                    <Pencil size={16} />
+                    <span>Edit Instance</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate(`/applications/${applicationUuid}/instances/${instanceUuid}/events`)
+                      setIsInstanceActionsDropdownOpen(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                  >
+                    <AlertCircle size={16} />
+                    <span>Events</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (instanceUuid) {
+                        syncInstanceMutation.mutate(instanceUuid)
+                      }
+                    }}
+                    disabled={syncInstanceMutation.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed last:rounded-b-lg"
+                  >
+                    <RefreshCw size={16} className={syncInstanceMutation.isPending ? 'animate-spin' : ''} />
+                    <span>{syncInstanceMutation.isPending ? 'Syncing...' : 'Sync'}</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              if (confirm('Are you sure you want to delete this instance? This action cannot be undone.')) {
+                deleteInstanceMutation.mutate(instanceUuid!)
+              }
+            }}
+            disabled={deleteInstanceMutation.isPending}
+            className="btn-secondary flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
+          >
+            <Trash2 size={18} />
+            <span>{deleteInstanceMutation.isPending ? 'Deleting...' : 'Delete Instance'}</span>
+          </button>
+        </div>
+      </div>
         )}
 
         {/* Edit Instance Modal */}

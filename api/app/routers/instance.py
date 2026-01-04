@@ -69,3 +69,16 @@ def get_instance_events(
 ):
     return InstanceService.get_instance_events(db, uuid)
 
+
+@router.post("/instances/{uuid}/sync", response_model=dict)
+def sync_instance(
+    uuid: UUID,
+    db: Session = Depends(database.get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN]))
+):
+    """
+    Sincroniza todos os componentes de uma instância com o Kubernetes.
+    Reaplica componentes habilitados e remove componentes desabilitados.
+    """
+    return InstanceService.sync_instance(db, uuid)
+

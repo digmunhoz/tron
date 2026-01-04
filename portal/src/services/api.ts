@@ -433,6 +433,10 @@ export const instancesApi = {
     const response = await api.get<KubernetesEvent[]>(`/instances/${uuid}/events`)
     return response.data
   },
+  sync: async (uuid: string): Promise<{ detail: string; synced_components: number; total_components: number; errors: Array<{ component: string; error: string }> }> => {
+    const response = await api.post(`/instances/${uuid}/sync`)
+    return response.data
+  },
 }
 
 // Auth
