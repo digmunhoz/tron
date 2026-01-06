@@ -14,6 +14,49 @@ from app.services.kubernetes.application_component_manager import (
     KubernetesApplicationComponentManager,
 )
 from app.services.cluster_selection import ClusterSelectionService
+from app.services.cluster import get_gateway_reference_from_cluster
+
+
+def validate_exposure_type_in_gateway_resources(cluster, exposure_type: str):
+    """
+    Valida se o exposure.type está disponível nos recursos do Gateway API do cluster.
+
+    Args:
+        cluster: Objeto Cluster do banco de dados
+        exposure_type: Tipo de exposição ('http', 'tcp', 'udp')
+
+    Raises:
+        HTTPException: Se o recurso necessário não estiver disponível no cluster
+    """
+    # Mapeamento de exposure.type para recursos do Gateway API
+    type_to_resource = {
+        'http': 'HTTPRoute',
+        'tcp': 'TCPRoute',
+        'udp': 'UDPRoute'
+    }
+
+    required_resource = type_to_resource.get(exposure_type)
+    if not required_resource:
+        # Se não for um tipo que requer Gateway API, não precisa validar
+        return
+
+    # Verificar Gateway API e recursos disponíveis
+    k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+    gateway_api_available = k8s_client.check_api_available("gateway.networking.k8s.io")
+
+    if not gateway_api_available:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Gateway API is not available in cluster '{cluster.name}'. Exposure type '{exposure_type}' requires Gateway API support."
+        )
+
+    gateway_resources = k8s_client.get_gateway_api_resources()
+
+    if required_resource not in gateway_resources:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Gateway API resource '{required_resource}' is not available in cluster '{cluster.name}'. Required for exposure type '{exposure_type}'. Available resources: {', '.join(gateway_resources) if gateway_resources else 'none'}"
+        )
 
 
 class WebappService:
@@ -48,21 +91,94 @@ class WebappService:
             was_enabled = db_webapp.enabled
             will_be_enabled = webapp_update.enabled if webapp_update.enabled is not None else db_webapp.enabled
 
-            if webapp_update.is_public is not None:
-                db_webapp.is_public = webapp_update.is_public
-            if webapp_update.url is not None:
-                db_webapp.url = webapp_update.url
+            if webapp_update.settings is not None:
+                settings_dict = webapp_update.settings.model_dump()
+
+                # Validar exposure.type se presente nos settings
+                if 'exposure' in settings_dict and 'type' in settings_dict['exposure']:
+                    exposure_type = settings_dict['exposure']['type']
+
+                    # Buscar o cluster_instance relacionado ao componente
+                    temp_cluster_instance = (
+                        db.query(ClusterInstanceModel.ClusterInstance)
+                        .filter(ClusterInstanceModel.ClusterInstance.application_component_id == db_webapp.id)
+                        .first()
+                    )
+
+                    # Se não existir cluster_instance, precisamos obter um cluster para validar
+                    if temp_cluster_instance is None:
+                        instance = db_webapp.instance
+                        temp_cluster = ClusterSelectionService.get_cluster_with_least_load_or_raise(
+                            db, instance.environment_id, instance.environment.name
+                        )
+                    else:
+                        temp_cluster = temp_cluster_instance.cluster
+
+                    # Validar se o exposure.type está disponível nos recursos do Gateway API
+                    validate_exposure_type_in_gateway_resources(temp_cluster, exposure_type)
+
+                # Validar exposure.visibility se presente nos settings
+                if 'exposure' in settings_dict and 'visibility' in settings_dict['exposure']:
+                    exposure_visibility = settings_dict['exposure']['visibility']
+                    if exposure_visibility in ['public', 'private']:
+                        # Buscar o cluster_instance relacionado ao componente
+                        temp_cluster_instance = (
+                            db.query(ClusterInstanceModel.ClusterInstance)
+                            .filter(ClusterInstanceModel.ClusterInstance.application_component_id == db_webapp.id)
+                            .first()
+                        )
+
+                        # Se não existir cluster_instance, precisamos obter um cluster para validar
+                        if temp_cluster_instance is None:
+                            instance = db_webapp.instance
+                            temp_cluster = ClusterSelectionService.get_cluster_with_least_load_or_raise(
+                                db, instance.environment_id, instance.environment.name
+                            )
+                        else:
+                            temp_cluster = temp_cluster_instance.cluster
+
+                        # Verificar se o cluster tem gateway_api disponível
+                        k8s_client_temp = K8sClient(url=temp_cluster.api_address, token=temp_cluster.token)
+                        gateway_api_available = k8s_client_temp.check_api_available("gateway.networking.k8s.io")
+
+                        if not gateway_api_available:
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"Cluster '{temp_cluster.name}' does not have Gateway API available. Visibility 'public' or 'private' requires Gateway API support. Please use 'cluster' visibility instead."
+                            )
+                db_webapp.settings = settings_dict
+
+            # Obter exposure_type e visibility após atualizar settings
+            final_settings = db_webapp.settings or {}
+            exposure_type = final_settings.get('exposure', {}).get('type', 'http')
+            exposure_visibility = final_settings.get('exposure', {}).get('visibility', 'cluster')
+
+            # Em um PUT, verificar se o campo url foi enviado no payload
+            # Usar model_fields_set do Pydantic v2 para verificar campos definidos
+            url_present_in_payload = 'url' in webapp_update.model_fields_set if hasattr(webapp_update, 'model_fields_set') else webapp_update.url is not None
+
+            # Se exposure.type não for HTTP ou visibility for cluster, limpar URL automaticamente
+            if exposure_type != 'http' or exposure_visibility == 'cluster':
+                db_webapp.url = None
+            elif url_present_in_payload:
+                # Se o campo url veio no payload, atualizar/limpar conforme o valor
+                if webapp_update.url is not None:
+                    # Se for HTTP e visibility não for cluster e URL foi enviada, atualizar
+                    db_webapp.url = webapp_update.url
+                else:
+                    # Se url veio como None no payload (ou não veio), remover do banco
+                    db_webapp.url = None
+            # Se url não veio no payload, manter o valor atual do banco (não fazer nada)
+
             if webapp_update.enabled is not None:
                 db_webapp.enabled = webapp_update.enabled
-            if webapp_update.settings is not None:
-                db_webapp.settings = webapp_update.settings.model_dump()
 
-            # Validate that webapp type requires url (check final state after all updates)
+            # Validate that webapp requires url only if exposure.type is 'http' and visibility is not 'cluster'
             final_url = db_webapp.url
-            if not final_url:
+            if exposure_type == 'http' and exposure_visibility != 'cluster' and not final_url:
                 raise HTTPException(
                     status_code=400,
-                    detail="URL is required for webapp components"
+                    detail="URL is required for webapp components with HTTP exposure type and visibility 'public' or 'private'"
                 )
 
             # Buscar o cluster_instance relacionado ao componente
@@ -123,8 +239,10 @@ class WebappService:
                     if application_name:
                         k8s_client.ensure_namespace_exists(application_name)
 
+                    gateway_reference = get_gateway_reference_from_cluster(cluster)
                     kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                        application_component_serialized, component_type, settings_serialized, db=db
+                        application_component_serialized, component_type, settings_serialized, db=db,
+                        gateway_reference=gateway_reference
                     )
                     k8s_client.apply_or_delete_yaml_to_k8s(
                         kubernetes_payload, operation="delete"
@@ -150,8 +268,10 @@ class WebappService:
                     if application_name:
                         k8s_client.ensure_namespace_exists(application_name)
 
+                    gateway_reference = get_gateway_reference_from_cluster(cluster)
                     kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                        application_component_serialized, component_type, settings_serialized, db=db
+                        application_component_serialized, component_type, settings_serialized, db=db,
+                        gateway_reference=gateway_reference
                     )
                     k8s_client.apply_or_delete_yaml_to_k8s(
                         kubernetes_payload, operation="upsert"
@@ -178,8 +298,10 @@ class WebappService:
                     if application_name:
                         k8s_client.ensure_namespace_exists(application_name)
 
+                    gateway_reference = get_gateway_reference_from_cluster(cluster)
                     kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                        application_component_serialized, component_type, settings_serialized, db=db
+                        application_component_serialized, component_type, settings_serialized, db=db,
+                        gateway_reference=gateway_reference
                     )
                     k8s_client.apply_or_delete_yaml_to_k8s(
                         kubernetes_payload, operation="upsert"
@@ -201,12 +323,29 @@ class WebappService:
             # Cast to WebappCreate for type checking
             webapp_create = WebappSchema.WebappCreate.model_validate(webapp)
 
-            # Validate that webapp requires url
-            if not webapp_create.url:
+            # Validate URL based on exposure.type and visibility
+            settings_dict = webapp_create.settings.model_dump() if webapp_create.settings else {}
+            exposure_type = settings_dict.get('exposure', {}).get('type', 'http')
+            exposure_visibility = settings_dict.get('exposure', {}).get('visibility', 'cluster')
+
+            # URL is required only if exposure.type is 'http' AND visibility is not 'cluster'
+            if exposure_type == 'http' and exposure_visibility != 'cluster' and not webapp_create.url:
                 raise HTTPException(
                     status_code=400,
-                    detail="URL is required for webapp components"
+                    detail="URL is required for webapp components with HTTP exposure type and visibility 'public' or 'private'"
                 )
+            # URL is not allowed if exposure.type is not 'http' or visibility is 'cluster'
+            if (exposure_type != 'http' or exposure_visibility == 'cluster') and webapp_create.url:
+                if exposure_type != 'http':
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"URL is not allowed for webapp components with exposure type '{exposure_type}'. URL is only allowed for HTTP exposure type."
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="URL is not allowed for webapp components with 'cluster' visibility. URL is only allowed for 'public' or 'private' visibility."
+                    )
 
             # Get instance by uuid
             instance = (
@@ -217,13 +356,48 @@ class WebappService:
             if instance is None:
                 raise HTTPException(status_code=404, detail="Instance not found")
 
+            # Validar exposure.type e exposure.visibility se presente nos settings
+            settings_dict = webapp_create.settings.model_dump()
+            cluster = None
+
+            # Validar exposure.type se presente
+            if 'exposure' in settings_dict and 'type' in settings_dict['exposure']:
+                exposure_type = settings_dict['exposure']['type']
+
+                # Obter o cluster que será usado (cluster de menor carga)
+                cluster = ClusterSelectionService.get_cluster_with_least_load_or_raise(
+                    db, instance.environment_id, instance.environment.name
+                )
+
+                # Validar se o exposure.type está disponível nos recursos do Gateway API
+                validate_exposure_type_in_gateway_resources(cluster, exposure_type)
+
+            # Validar exposure.visibility se presente nos settings
+            if 'exposure' in settings_dict and 'visibility' in settings_dict['exposure']:
+                exposure_visibility = settings_dict['exposure']['visibility']
+                if exposure_visibility in ['public', 'private']:
+                    # Obter o cluster que será usado (cluster de menor carga) se ainda não foi obtido
+                    if cluster is None:
+                        cluster = ClusterSelectionService.get_cluster_with_least_load_or_raise(
+                            db, instance.environment_id, instance.environment.name
+                        )
+
+                    # Verificar se o cluster tem gateway_api disponível
+                    k8s_client_temp = K8sClient(url=cluster.api_address, token=cluster.token)
+                    gateway_api_available = k8s_client_temp.check_api_available("gateway.networking.k8s.io")
+
+                    if not gateway_api_available:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Cluster '{cluster.name}' does not have Gateway API available. Visibility 'public' or 'private' requires Gateway API support. Please use 'cluster' visibility instead."
+                        )
+
             db_webapp = ApplicationComponentModel.ApplicationComponent(
                 uuid=uuid4(),
                 instance_id=instance.id,
                 name=webapp_create.name,
                 type=ApplicationComponentModel.WebappType.webapp,
-                settings=webapp_create.settings.model_dump(),
-                is_public=webapp_create.is_public,
+                settings=settings_dict,
                 url=webapp_create.url,
                 enabled=webapp_create.enabled,
             )
@@ -238,9 +412,11 @@ class WebappService:
                 raise HTTPException(status_code=400, detail=message)
 
             # Criar cluster_instance automaticamente usando o cluster de menor carga
-            cluster = ClusterSelectionService.get_cluster_with_least_load_or_raise(
-                db, instance.environment_id, instance.environment.name
-            )
+            # Se já obtivemos o cluster acima (para validação), reutilizar; caso contrário, obter agora
+            if cluster is None:
+                cluster = ClusterSelectionService.get_cluster_with_least_load_or_raise(
+                    db, instance.environment_id, instance.environment.name
+                )
 
             # Verificar se já existe um cluster_instance para este componente (não deveria acontecer em criação)
             existing_cluster_instance = (
@@ -296,8 +472,10 @@ class WebappService:
                 if application_name:
                     k8s_client.ensure_namespace_exists(application_name)
 
+                gateway_reference = get_gateway_reference_from_cluster(cluster)
                 kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                    application_component_serialized, component_type, settings_serialized, db=db
+                    application_component_serialized, component_type, settings_serialized, db=db,
+                    gateway_reference=gateway_reference
                 )
                 k8s_client.apply_or_delete_yaml_to_k8s(
                     kubernetes_payload, operation="create"
@@ -404,8 +582,10 @@ class WebappService:
 
                 # Gerar payload do Kubernetes
                 k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+                gateway_reference = get_gateway_reference_from_cluster(cluster)
                 kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                    application_component_serialized, component_type, settings_serialized, db=db
+                    application_component_serialized, component_type, settings_serialized, db=db,
+                    gateway_reference=gateway_reference
                 )
 
                 # Deletar recursos no Kubernetes

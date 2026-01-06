@@ -20,6 +20,12 @@ class WebappType(str, enum.Enum):
     cron = "cron"
 
 
+class VisibilityType(str, enum.Enum):
+    public = "public"
+    private = "private"
+    cluster = "cluster"
+
+
 class ApplicationComponent(Base):
     __tablename__ = "application_components"
 
@@ -34,7 +40,6 @@ class ApplicationComponent(Base):
 
     settings = Column(JSON, nullable=True)
 
-    is_public = Column(Boolean, nullable=False, default=False)
     url = Column(String, unique=True, nullable=True)
     enabled = Column(Boolean, nullable=False, default=True)
 

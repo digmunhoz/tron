@@ -11,6 +11,33 @@ import app.models.environment as EnvironmentModel
 import app.schemas.cluster as ClusterSchema
 
 
+def get_gateway_reference_from_cluster(cluster) -> dict:
+    """
+    Obtém as informações de referência do gateway de um cluster.
+    Busca dinamicamente o Gateway no cluster Kubernetes.
+
+    Args:
+        cluster: Objeto Cluster do banco de dados
+
+    Returns:
+        Dict com namespace e name do gateway, ou valores vazios se não encontrar
+    """
+    try:
+        k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+        gateway_ref = k8s_client.get_gateway_reference()
+
+        if gateway_ref:
+            return gateway_ref
+    except Exception as e:
+        print(f"Warning: Error getting Gateway reference from cluster: {e}")
+
+    # Retornar valores vazios se não encontrar
+    return {
+        "namespace": "",
+        "name": ""
+    }
+
+
 class ClusterService:
     def upsert_cluster(
         db: Session, cluster: ClusterSchema.ClusterCreate, cluster_uuid: UUID = None
@@ -97,6 +124,21 @@ class ClusterService:
         available_cpu = k8s_client.get_available_cpu() or 0
         available_memory = k8s_client.get_available_memory() or 0
 
+        # Verificar Gateway API e recursos disponíveis
+        gateway_api_available = k8s_client.check_api_available("gateway.networking.k8s.io")
+        gateway_resources = []
+        gateway_reference = {
+            "namespace": "",
+            "name": "",
+        }
+
+        if gateway_api_available:
+            gateway_resources = k8s_client.get_gateway_api_resources()
+            # Buscar referência do Gateway no cluster
+            gateway_ref = k8s_client.get_gateway_reference()
+            if gateway_ref:
+                gateway_reference = gateway_ref
+
         serialized_data = {
             "uuid": db_cluster.uuid,
             "name": db_cluster.name,
@@ -104,6 +146,13 @@ class ClusterService:
             "available_cpu": available_cpu,
             "available_memory": available_memory,
             "environment": db_cluster.environment,
+            "gateway": {
+                "api": {
+                    "enabled": gateway_api_available,
+                    "resources": gateway_resources,
+                },
+                "reference": gateway_reference,
+            },
         }
 
         return ClusterSchema.ClusterCompletedResponse.model_validate(serialized_data)
@@ -117,13 +166,36 @@ class ClusterService:
             k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
             success, connection_message = k8s_client.validate_connection()
 
+            # Verificar se a API Gateway está disponível apenas se a conexão for bem-sucedida
+            gateway_api_available = False
+            gateway_resources = []
+            gateway_reference = {
+                "namespace": "",
+                "name": "",
+            }
+
+            if success:
+                gateway_api_available = k8s_client.check_api_available("gateway.networking.k8s.io")
+                if gateway_api_available:
+                    gateway_resources = k8s_client.get_gateway_api_resources()
+                    # Buscar referência do Gateway no cluster
+                    gateway_ref = k8s_client.get_gateway_reference()
+                    if gateway_ref:
+                        gateway_reference = gateway_ref
+
             cluster_data = {
                 "uuid": cluster.uuid,
                 "name": cluster.name,
                 "api_address": cluster.api_address,
-                "token": cluster.token,
                 "environment": cluster.environment,
                 "detail": connection_message,
+                "gateway": {
+                    "api": {
+                        "enabled": gateway_api_available,
+                        "resources": gateway_resources,
+                    },
+                    "reference": gateway_reference,
+                },
             }
 
             cluster_response = (

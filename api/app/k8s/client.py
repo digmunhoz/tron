@@ -286,14 +286,114 @@ class K8sClient:
             print(f"Erro ao executar comando no pod {pod_name}: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to execute command: {str(e)}")
 
+    def cleanup_orphaned_gateway_resources(self, namespace: str, component_name: str, expected_resources: list):
+        """
+        Remove recursos Gateway API (HTTPRoute, TCPRoute, UDPRoute) que não deveriam mais existir.
+
+        Args:
+            namespace: Namespace onde os recursos estão
+            component_name: Nome do componente
+            expected_resources: Lista de dicionários com os recursos esperados (renderizados dos templates)
+        """
+        # Identificar quais recursos Gateway API deveriam existir
+        expected_gateway_kinds = set()
+        for resource in expected_resources:
+            if resource and isinstance(resource, dict):
+                kind = resource.get("kind")
+                api_version = resource.get("apiVersion", "")
+                # Verificar se é um recurso Gateway API
+                if kind in ["HTTPRoute", "TCPRoute", "UDPRoute"] and "gateway.networking.k8s.io" in api_version:
+                    expected_gateway_kinds.add(kind)
+
+        # Lista de recursos Gateway API que podem existir
+        gateway_resources = [
+            ("HTTPRoute", "gateway.networking.k8s.io/v1", "httproutes"),
+            ("TCPRoute", "gateway.networking.k8s.io/v1alpha2", "tcproutes"),
+            ("UDPRoute", "gateway.networking.k8s.io/v1alpha2", "udproutes"),
+        ]
+
+        # Para cada tipo de recurso Gateway API, verificar se deveria existir
+        for kind, api_version, resource_name in gateway_resources:
+            # Se não está na lista de esperados, tentar deletar se existir
+            if kind not in expected_gateway_kinds:
+                try:
+                    # Tentar deletar o recurso se existir
+                    api_parts = api_version.split('/')
+                    api_group = api_parts[0]
+                    api_version_part = api_parts[1]
+                    api_path = f"/apis/{api_group}/{api_version_part}/namespaces/{namespace}/{resource_name}/{component_name}"
+
+                    self.api_client.call_api(
+                        api_path,
+                        'DELETE',
+                        body=client.V1DeleteOptions(),
+                        auth_settings=['BearerToken'],
+                        response_type='object',
+                        _preload_content=True
+                    )
+                    print(f"Deleted orphaned {kind} '{component_name}' from namespace '{namespace}'")
+                except ApiException as e:
+                    if e.status == 404:
+                        # Recurso não existe, tudo bem
+                        pass
+                    else:
+                        # Log mas não falha - não é crítico
+                        print(f"Warning: Could not delete {kind} '{component_name}': {e}")
+
     def apply_or_delete_yaml_to_k8s(self, yaml_documents, operation="create"):
+        # Para operações upsert, limpar recursos Gateway API órfãos antes de aplicar
+        if operation == "upsert":
+            # Coletar informações dos documentos para identificar namespace e component_name
+            namespace = None
+            component_name = None
+
+            # Procurar primeiro por recursos Gateway API para obter o nome correto
+            for doc in yaml_documents:
+                if doc and isinstance(doc, dict):
+                    kind = doc.get("kind")
+                    api_version = doc.get("apiVersion", "")
+                    metadata = doc.get("metadata", {})
+
+                    # Se for um recurso Gateway API, usar esse nome
+                    if kind in ["HTTPRoute", "TCPRoute", "UDPRoute"] and "gateway.networking.k8s.io" in api_version:
+                        component_name = metadata.get("name")
+                        namespace = metadata.get("namespace")
+                        if namespace and component_name:
+                            break
+
+            # Se não encontrou em recursos Gateway API, procurar em qualquer documento
+            if not (namespace and component_name):
+                for doc in yaml_documents:
+                    if doc and isinstance(doc, dict) and doc.get("metadata"):
+                        metadata = doc.get("metadata", {})
+                        namespace = metadata.get("namespace")
+                        component_name = metadata.get("name")
+                        if namespace and component_name:
+                            break
+
+            # Se encontrou namespace e component_name, limpar recursos órfãos
+            if namespace and component_name:
+                try:
+                    self.cleanup_orphaned_gateway_resources(namespace, component_name, yaml_documents)
+                except Exception as e:
+                    # Log mas não falha - não é crítico
+                    print(f"Warning: Could not cleanup orphaned Gateway resources: {e}")
 
         for document in yaml_documents:
+            # Pular documentos None ou inválidos (quando template não renderiza nada)
+            if document is None or not isinstance(document, dict):
+                continue
 
             kind = document.get("kind")
             api_version = document.get("apiVersion")
-            name = document["metadata"].get("name")
-            namespace = document["metadata"].get("namespace")
+            metadata = document.get("metadata")
+
+            # Verificar se metadata existe
+            if not metadata or not isinstance(metadata, dict):
+                continue
+
+            name = metadata.get("name")
+            namespace = metadata.get("namespace")
 
             if not namespace:
                 raise ValueError("Namespace not specified in the YAML file")
@@ -307,77 +407,223 @@ class K8sClient:
                 raise ValueError("YAML must include 'kind' and 'apiVersion' fields.")
 
             api_mapping = K8S_API_MAPPING.get(kind)
+
+            # Se o recurso não está no mapeamento padrão, usar API REST diretamente
+            # Isso é necessário para recursos customizados como Gateway API (HTTPRoute, TCPRoute, UDPRoute)
             if not api_mapping:
-                raise ValueError(f"No API found for resource kind: {kind}")
+                # Extrair o grupo e versão da API do apiVersion
+                # Formato: grupo/versão (ex: gateway.networking.k8s.io/v1)
+                # ou apenas versão para APIs core (ex: v1)
+                api_parts = api_version.split('/')
+                if len(api_parts) == 2:
+                    api_group, api_version_part = api_parts
+                else:
+                    # API core (ex: v1)
+                    api_group = ""
+                    api_version_part = api_version
 
-            api_class, create_method, delete_method, replace_method = api_mapping
+                # Converter o kind para o nome do recurso no path da API
+                # Gateway API usa lowercase plural: HTTPRoute -> httproutes, TCPRoute -> tcproutes
+                def kind_to_resource_name(kind_str):
+                    """Converte um Kind para o nome do recurso no path da API"""
+                    # Converter para lowercase
+                    lower = kind_str.lower()
+                    # Adicionar 's' se não terminar com 's'
+                    if not lower.endswith('s'):
+                        return lower + 's'
+                    return lower
 
-            api_instance = api_class(self.api_client)
+                resource_name = kind_to_resource_name(kind)
 
-            if operation == "create":
-                getattr(api_instance, create_method)(
-                    namespace=namespace, body=document
-                )
-            elif operation == "update":
-                getattr(api_instance, replace_method)(
-                    name=name, namespace=namespace, body=document
-                )
-            elif operation == "upsert":
-                # Tenta atualizar primeiro, se não existir, cria
+                # Determinar o path da API baseado no grupo
+                if api_group:
+                    # API customizada: /apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}
+                    api_path_base = f"/apis/{api_group}/{api_version_part}/namespaces/{namespace}/{resource_name}"
+                else:
+                    # API core: /api/{version}/namespaces/{namespace}/{resource}/{name}
+                    api_path_base = f"/api/{api_version_part}/namespaces/{namespace}/{resource_name}"
+
+                # Aplicar usando API REST diretamente
                 try:
-                    # Para Deployments, preservar o número de réplicas atual se não especificado
-                    if kind == "Deployment" and "spec" in document:
+                    if operation == "create":
+                        # POST para criar
+                        self.api_client.call_api(
+                            api_path_base,
+                            'POST',
+                            body=document,
+                            auth_settings=['BearerToken'],
+                            response_type='object',
+                            _preload_content=True
+                        )
+                    elif operation == "update":
+                        # PUT para atualizar - precisa obter resourceVersion primeiro
                         try:
-                            read_method = getattr(api_instance, "read_namespaced_deployment", None)
-                            if read_method:
-                                existing_deployment = read_method(name=name, namespace=namespace)
+                            # Ler o recurso existente para obter o resourceVersion
+                            existing_response = self.api_client.call_api(
+                                f"{api_path_base}/{name}",
+                                'GET',
+                                auth_settings=['BearerToken'],
+                                response_type='object',
+                                _preload_content=True
+                            )
+                            existing_resource = existing_response[0] if isinstance(existing_response, tuple) else existing_response
 
-                                # Se o novo documento não especifica replicas, preservar o valor atual
-                                # Isso evita que o Kubernetes resete para o valor padrão (1) ou conflite com HPA
-                                if "replicas" not in document.get("spec", {}):
-                                    if hasattr(existing_deployment.spec, "replicas") and existing_deployment.spec.replicas is not None:
-                                        document["spec"]["replicas"] = existing_deployment.spec.replicas
-
-                                # Preservar também resourceVersion e outras metadatas necessárias para evitar conflitos
-                                # O resourceVersion é necessário para o replace funcionar corretamente
-                                if hasattr(existing_deployment.metadata, "resource_version") and existing_deployment.metadata.resource_version:
-                                    if "metadata" not in document:
-                                        document["metadata"] = {}
-                                    document["metadata"]["resourceVersion"] = existing_deployment.metadata.resource_version
-
-                                    # Preservar também generation se existir
-                                    if hasattr(existing_deployment.metadata, "generation") and existing_deployment.metadata.generation:
-                                        document["metadata"]["generation"] = existing_deployment.metadata.generation
+                            # Incluir resourceVersion no documento se existir
+                            if existing_resource and 'metadata' in existing_resource:
+                                existing_metadata = existing_resource['metadata']
+                                if 'resourceVersion' in existing_metadata:
+                                    if 'metadata' not in document:
+                                        document['metadata'] = {}
+                                    document['metadata']['resourceVersion'] = existing_metadata['resourceVersion']
                         except ApiException as read_e:
-                            # Se não conseguir ler (404 ou outro erro), continua normalmente
-                            # Isso significa que o deployment não existe ainda, então criaremos
                             if read_e.status != 404:
-                                # Se for outro erro, loga mas continua
-                                print(f"Warning: Could not read existing deployment to preserve replicas: {read_e}")
+                                # Se não conseguir ler e não for 404, relançar o erro
+                                raise read_e
 
+                        # PUT para atualizar
+                        self.api_client.call_api(
+                            f"{api_path_base}/{name}",
+                            'PUT',
+                            body=document,
+                            auth_settings=['BearerToken'],
+                            response_type='object',
+                            _preload_content=True
+                        )
+                    elif operation == "upsert":
+                        # Tenta atualizar primeiro, se não existir, cria
+                        try:
+                            # Ler o recurso existente para obter o resourceVersion
+                            existing_response = self.api_client.call_api(
+                                f"{api_path_base}/{name}",
+                                'GET',
+                                auth_settings=['BearerToken'],
+                                response_type='object',
+                                _preload_content=True
+                            )
+                            existing_resource = existing_response[0] if isinstance(existing_response, tuple) else existing_response
+
+                            # Incluir resourceVersion no documento se existir
+                            if existing_resource and 'metadata' in existing_resource:
+                                existing_metadata = existing_resource['metadata']
+                                if 'resourceVersion' in existing_metadata:
+                                    if 'metadata' not in document:
+                                        document['metadata'] = {}
+                                    document['metadata']['resourceVersion'] = existing_metadata['resourceVersion']
+
+                            # PUT para atualizar
+                            self.api_client.call_api(
+                                f"{api_path_base}/{name}",
+                                'PUT',
+                                body=document,
+                                auth_settings=['BearerToken'],
+                                response_type='object',
+                                _preload_content=True
+                            )
+                        except ApiException as e:
+                            if e.status == 404:
+                                # Recurso não existe, criar
+                                self.api_client.call_api(
+                                    api_path_base,
+                                    'POST',
+                                    body=document,
+                                    auth_settings=['BearerToken'],
+                                    response_type='object',
+                                    _preload_content=True
+                                )
+                            else:
+                                raise e
+                    elif operation == "delete":
+                        # DELETE para remover
+                        try:
+                            self.api_client.call_api(
+                                f"{api_path_base}/{name}",
+                                'DELETE',
+                                body=client.V1DeleteOptions(),
+                                auth_settings=['BearerToken'],
+                                response_type='object',
+                                _preload_content=True
+                            )
+                        except ApiException as e:
+                            if e.status == 404:
+                                # Recurso já não existe, isso é aceitável
+                                pass
+                            else:
+                                raise e
+                except ApiException as e:
+                    raise HTTPException(
+                        status_code=e.status,
+                        detail=f"Failed to {operation} {kind} '{name}': {str(e)}"
+                    )
+            else:
+                # Usar o mapeamento padrão para recursos conhecidos
+                api_class, create_method, delete_method, replace_method = api_mapping
+
+                api_instance = api_class(self.api_client)
+
+                if operation == "create":
+                    getattr(api_instance, create_method)(
+                        namespace=namespace, body=document
+                    )
+                elif operation == "update":
                     getattr(api_instance, replace_method)(
                         name=name, namespace=namespace, body=document
                     )
-                except ApiException as e:
-                    if e.status == 404:
-                        # Recurso não existe, criar
-                        getattr(api_instance, create_method)(
-                            namespace=namespace, body=document
+                elif operation == "upsert":
+                    # Tenta atualizar primeiro, se não existir, cria
+                    try:
+                        # Para Deployments, preservar o número de réplicas atual se não especificado
+                        if kind == "Deployment" and "spec" in document:
+                            try:
+                                read_method = getattr(api_instance, "read_namespaced_deployment", None)
+                                if read_method:
+                                    existing_deployment = read_method(name=name, namespace=namespace)
+
+                                    # Se o novo documento não especifica replicas, preservar o valor atual
+                                    # Isso evita que o Kubernetes resete para o valor padrão (1) ou conflite com HPA
+                                    if "replicas" not in document.get("spec", {}):
+                                        if hasattr(existing_deployment.spec, "replicas") and existing_deployment.spec.replicas is not None:
+                                            document["spec"]["replicas"] = existing_deployment.spec.replicas
+
+                                    # Preservar também resourceVersion e outras metadatas necessárias para evitar conflitos
+                                    # O resourceVersion é necessário para o replace funcionar corretamente
+                                    if hasattr(existing_deployment.metadata, "resource_version") and existing_deployment.metadata.resource_version:
+                                        if "metadata" not in document:
+                                            document["metadata"] = {}
+                                        document["metadata"]["resourceVersion"] = existing_deployment.metadata.resource_version
+
+                                        # Preservar também generation se existir
+                                        if hasattr(existing_deployment.metadata, "generation") and existing_deployment.metadata.generation:
+                                            document["metadata"]["generation"] = existing_deployment.metadata.generation
+                            except ApiException as read_e:
+                                # Se não conseguir ler (404 ou outro erro), continua normalmente
+                                # Isso significa que o deployment não existe ainda, então criaremos
+                                if read_e.status != 404:
+                                    # Se for outro erro, loga mas continua
+                                    print(f"Warning: Could not read existing deployment to preserve replicas: {read_e}")
+
+                        getattr(api_instance, replace_method)(
+                            name=name, namespace=namespace, body=document
                         )
-                    else:
-                        raise e
-            elif operation == "delete":
-                try:
-                    getattr(api_instance, delete_method)(
-                        name=name, namespace=namespace, body=client.V1DeleteOptions()
-                    )
-                except ApiException as e:
-                    if e.status == 404:
-                        # Recurso já não existe no Kubernetes, isso é aceitável
-                        # O objetivo é deletar e se já não existe, consideramos sucesso
-                        pass
-                    else:
-                        raise e
+                    except ApiException as e:
+                        if e.status == 404:
+                            # Recurso não existe, criar
+                            getattr(api_instance, create_method)(
+                                namespace=namespace, body=document
+                            )
+                        else:
+                            raise e
+                elif operation == "delete":
+                    try:
+                        getattr(api_instance, delete_method)(
+                            name=name, namespace=namespace, body=client.V1DeleteOptions()
+                        )
+                    except ApiException as e:
+                        if e.status == 404:
+                            # Recurso já não existe no Kubernetes, isso é aceitável
+                            # O objetivo é deletar e se já não existe, consideramos sucesso
+                            pass
+                        else:
+                            raise e
 
         return f"Documents applied successfully"
 
@@ -665,6 +911,261 @@ class K8sClient:
         except ApiException as e:
             print(f"Erro ao listar eventos: {e}")
             return []
+
+    def check_api_available(self, api_group: str) -> bool:
+        """
+        Verifica se uma API group está disponível no cluster Kubernetes.
+
+        Args:
+            api_group: Nome do API group (ex: 'gateway.networking.k8s.io')
+
+        Returns:
+            True se a API está disponível, False caso contrário
+        """
+        try:
+            # Usar a API REST diretamente para verificar se o grupo existe
+            # Fazendo uma requisição GET para /apis/{api_group}
+            path = f"/apis/{api_group}"
+
+            try:
+                response = self.api_client.call_api(
+                    path,
+                    'GET',
+                    auth_settings=['BearerToken'],
+                    response_type='object',
+                    _preload_content=False
+                )
+
+                # call_api retorna uma tupla: (data, status, headers)
+                data, status, headers = response
+
+                # Se a requisição foi bem-sucedida (status 200), o grupo existe
+                if status == 200:
+                    print(f"API group {api_group} encontrado via API REST")
+                    return True
+                else:
+                    print(f"API group {api_group} retornou status {status}")
+                    return False
+
+            except ApiException as api_err:
+                # Se der erro 404, o grupo não está disponível
+                if api_err.status == 404:
+                    print(f"API group {api_group} não encontrado (404)")
+                    return False
+                else:
+                    print(f"Erro ao verificar API group {api_group}: {api_err}")
+                    return False
+
+        except ApiException as e:
+            print(f"Erro ao verificar API group {api_group}: {e}")
+            return False
+        except Exception as e:
+            print(f"Erro inesperado ao verificar API group {api_group}: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def get_gateway_api_resources(self) -> list[str]:
+        """
+        Lista os recursos Gateway API disponíveis no cluster usando a API de descoberta.
+        Equivalente ao comando 'kubectl api-resources --api-group=gateway.networking.k8s.io'
+
+        Returns:
+            Lista de recursos disponíveis (ex: ['HTTPRoute', 'TCPRoute', 'UDPRoute'])
+        """
+        available_resources = []
+
+        try:
+            # Usar a API de descoberta para listar recursos do grupo gateway.networking.k8s.io
+            # Isso é equivalente ao comando kubectl api-resources --api-group=gateway.networking.k8s.io
+            discovery_api = client.DiscoveryV1Api(self.api_client)
+
+            # Obter todos os recursos da API
+            api_resources = discovery_api.get_api_resources(group="gateway.networking.k8s.io")
+
+            # Filtrar apenas os recursos do grupo gateway.networking.k8s.io
+            for resource in api_resources.resources:
+                # Adicionar o kind do recurso (ex: HTTPRoute, TCPRoute, UDPRoute)
+                if resource.kind:
+                    available_resources.append(resource.kind)
+
+            # Remover duplicatas e ordenar
+            available_resources = sorted(list(set(available_resources)))
+
+        except ApiException as e:
+            # Se der erro, tentar método alternativo verificando versões conhecidas
+            print(f"Warning: Error getting Gateway API resources via discovery: {e}")
+            available_resources = self._fallback_get_gateway_resources()
+        except Exception as e:
+            # Erro inesperado, tentar método alternativo
+            print(f"Warning: Unexpected error getting Gateway API resources: {e}")
+            available_resources = self._fallback_get_gateway_resources()
+
+        return available_resources
+
+    def _fallback_get_gateway_resources(self) -> list[str]:
+        """
+        Método alternativo para verificar recursos Gateway API quando a API de descoberta falha.
+        Verifica recursos conhecidos diretamente.
+
+        Returns:
+            Lista de recursos disponíveis
+        """
+        available_resources = []
+
+        # Recursos Gateway API conhecidos e suas versões
+        gateway_resources = [
+            ("HTTPRoute", "gateway.networking.k8s.io/v1", "httproutes"),
+            ("TCPRoute", "gateway.networking.k8s.io/v1alpha2", "tcproutes"),
+            ("UDPRoute", "gateway.networking.k8s.io/v1alpha2", "udproutes"),
+        ]
+
+        for resource_kind, api_version, resource_name in gateway_resources:
+            try:
+                # Extrair grupo e versão
+                api_parts = api_version.split('/')
+                api_group = api_parts[0]
+                api_version_part = api_parts[1]
+
+                # Tentar listar o recurso (mesmo que vazio, se a API existir, retornará 200)
+                path = f"/apis/{api_group}/{api_version_part}/{resource_name}"
+
+                response = self.api_client.call_api(
+                    path,
+                    'GET',
+                    auth_settings=['BearerToken'],
+                    response_type='object',
+                    _preload_content=False
+                )
+
+                data, status, headers = response
+
+                # Se retornou 200, o recurso está disponível
+                if status == 200:
+                    available_resources.append(resource_kind)
+            except ApiException as e:
+                # Se der 404, o recurso não está disponível
+                if e.status != 404:
+                    # Outro erro, logar mas continuar
+                    print(f"Warning: Error checking {resource_kind} availability: {e}")
+            except Exception as e:
+                # Erro inesperado, logar mas continuar
+                print(f"Warning: Unexpected error checking {resource_kind} availability: {e}")
+
+        return available_resources
+
+    def get_gateway_reference(self) -> dict | None:
+        """
+        Busca o primeiro Gateway disponível no cluster e retorna seu nome e namespace.
+        Tenta buscar em namespaces comuns primeiro, depois lista todos os namespaces.
+
+        Returns:
+            Dict com 'namespace' e 'name' do Gateway, ou None se não encontrar
+        """
+        try:
+            # Tentar diferentes versões da API Gateway
+            api_versions = [
+                "gateway.networking.k8s.io/v1",
+                "gateway.networking.k8s.io/v1beta1",
+            ]
+
+            # Namespaces comuns para tentar primeiro
+            common_namespaces = ["kube-system", "default", "gateway-system"]
+
+            for api_version in api_versions:
+                try:
+                    # Extrair grupo e versão
+                    api_parts = api_version.split('/')
+                    api_group = api_parts[0]
+                    api_version_part = api_parts[1]
+
+                    # Primeiro, tentar buscar em namespaces comuns
+                    for namespace in common_namespaces:
+                        try:
+                            path = f"/apis/{api_group}/{api_version_part}/namespaces/{namespace}/gateways"
+
+                            response = self.api_client.call_api(
+                                path,
+                                'GET',
+                                auth_settings=['BearerToken'],
+                                response_type='object',
+                                _preload_content=True
+                            )
+
+                            data, status, headers = response
+
+                            if status == 200 and isinstance(data, dict):
+                                items = data.get('items', [])
+                                if items and len(items) > 0:
+                                    # Pegar o primeiro Gateway encontrado
+                                    gateway = items[0]
+                                    metadata = gateway.get('metadata', {})
+                                    name = metadata.get('name', '')
+
+                                    if name:
+                                        return {
+                                            "namespace": namespace,
+                                            "name": name
+                                        }
+                        except ApiException as e:
+                            # Se der 404, tentar próximo namespace
+                            if e.status == 404:
+                                continue
+                            # Outro erro, logar mas continuar
+                            print(f"Warning: Error getting Gateway from namespace {namespace}: {e}")
+                        except Exception as e:
+                            # Erro inesperado, logar mas continuar
+                            print(f"Warning: Unexpected error getting Gateway from namespace {namespace}: {e}")
+
+                    # Se não encontrou em namespaces comuns, tentar listar todos os Gateways
+                    # (algumas versões da API podem suportar isso)
+                    try:
+                        path = f"/apis/{api_group}/{api_version_part}/gateways"
+
+                        response = self.api_client.call_api(
+                            path,
+                            'GET',
+                            auth_settings=['BearerToken'],
+                            response_type='object',
+                            _preload_content=True
+                        )
+
+                        data, status, headers = response
+
+                        if status == 200 and isinstance(data, dict):
+                            items = data.get('items', [])
+                            if items and len(items) > 0:
+                                # Pegar o primeiro Gateway encontrado
+                                gateway = items[0]
+                                metadata = gateway.get('metadata', {})
+                                name = metadata.get('name', '')
+                                namespace = metadata.get('namespace', '')
+
+                                if name and namespace:
+                                    return {
+                                        "namespace": namespace,
+                                        "name": name
+                                    }
+                    except ApiException as e:
+                        # Se der 404 ou 405 (método não permitido), tentar próxima versão
+                        if e.status in [404, 405]:
+                            continue
+                        # Outro erro, logar mas continuar
+                        print(f"Warning: Error listing all Gateways via {api_version}: {e}")
+                    except Exception as e:
+                        # Erro inesperado, logar mas continuar
+                        print(f"Warning: Unexpected error listing all Gateways via {api_version}: {e}")
+
+                except Exception as e:
+                    # Erro inesperado, logar mas continuar
+                    print(f"Warning: Unexpected error getting Gateway via {api_version}: {e}")
+
+            # Se não encontrou em nenhuma versão, retornar None
+            return None
+
+        except Exception as e:
+            print(f"Error getting Gateway reference: {e}")
+            return None
 
     def _parse_memory(self, memory_str: str) -> int:
         """Converte string de memória (ex: '512Mi', '1Gi', '1000M') para MB."""

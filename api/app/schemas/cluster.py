@@ -21,10 +21,28 @@ class ClusterResponse(ClusterBase):
     )
 
 
-class ClusterResponseWithValidation(ClusterBase):
+class GatewayApiReference(BaseModel):
+    namespace: str = ""
+    name: str = ""
+
+
+class GatewayApi(BaseModel):
+    enabled: bool = False
+    resources: list[str] = []
+
+
+class GatewayFeatures(BaseModel):
+    api: GatewayApi
+    reference: GatewayApiReference
+
+
+class ClusterResponseWithValidation(BaseModel):
     uuid: UUID
+    name: str
+    api_address: str
     environment: Environment
     detail: dict
+    gateway: GatewayFeatures
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -38,6 +56,7 @@ class ClusterCompletedResponse(BaseModel):
     available_cpu: Optional[int]
     available_memory: Optional[int]
     environment: Environment
+    gateway: GatewayFeatures
 
     model_config = ConfigDict(
         from_attributes=True,

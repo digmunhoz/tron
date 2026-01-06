@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Trash2, Plus, Cloud, Info, Edit } from 'lucide-react'
+import { X, Trash2, Plus, Cloud, Info, Edit, CheckCircle, XCircle } from 'lucide-react'
 import { clustersApi, environmentsApi } from '../../services/api'
 import type { Cluster, ClusterCreate } from '../../types'
 import DataTable from '../../components/DataTable'
@@ -262,6 +262,38 @@ function Clusters() {
                   {status}
                   {isErrorStatus && hasMessage && <Info size={12} />}
                       </button>
+              )
+            },
+          },
+          {
+            key: 'gateway_api',
+            label: 'Gateway API',
+            render: (cluster) => {
+              const gatewayApi = cluster.gateway?.api
+              const gatewayApiEnabled = gatewayApi?.enabled ?? false
+              const gatewayResources = gatewayApi?.resources ?? []
+
+              return (
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    {gatewayApiEnabled ? (
+                      <>
+                        <CheckCircle size={16} className="text-green-600" />
+                        <span className="text-sm text-green-700 font-medium">Available</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle size={16} className="text-slate-400" />
+                        <span className="text-sm text-slate-500">Not Available</span>
+                      </>
+                    )}
+                  </div>
+                  {gatewayApiEnabled && gatewayResources.length > 0 && (
+                    <div className="text-xs text-slate-600 ml-6">
+                      Resources: {gatewayResources.join(', ')}
+                    </div>
+                  )}
+                </div>
               )
             },
           },

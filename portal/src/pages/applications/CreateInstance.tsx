@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
-import { instancesApi, applicationComponentsApi, applicationsApi, cronsApi } from '../../services/api'
+import { Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { instancesApi, applicationComponentsApi, applicationsApi, cronsApi, workersApi, clustersApi } from '../../services/api'
 import type { InstanceCreate, ApplicationComponentCreate } from '../../types'
 import {
   InstanceForm,
@@ -11,6 +11,7 @@ import {
   type ComponentFormData,
   getDefaultWebappSettings,
   getDefaultCronSettings,
+  getDefaultWorkerSettings,
 } from '../../components/applications'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
 import { PageHeader } from '../../components/PageHeader'
@@ -27,6 +28,12 @@ function CreateInstance() {
     enabled: !!applicationUuid,
   })
 
+  // Buscar clusters para verificar gateway API
+  const { data: clusters } = useQuery({
+    queryKey: ['clusters'],
+    queryFn: () => clustersApi.list(),
+  })
+
   // Instance form
   const [instanceData, setInstanceData] = useState<Omit<InstanceCreate, 'application_uuid'>>({
     environment_uuid: '',
@@ -35,21 +42,93 @@ function CreateInstance() {
     enabled: true,
   })
 
+  // Verificar se algum cluster do environment selecionado tem gateway_api disponível
+  const hasGatewayApi = useMemo(() => {
+    if (!instanceData.environment_uuid || !clusters) return false
+    const environmentClusters = clusters.filter(
+      (cluster) => cluster.environment?.uuid === instanceData.environment_uuid
+    )
+    return environmentClusters.some((cluster) => cluster.gateway?.api?.enabled === true)
+  }, [instanceData.environment_uuid, clusters])
+
+  // Obter recursos do Gateway API disponíveis nos clusters do environment selecionado
+  const gatewayResources = useMemo(() => {
+    if (!instanceData.environment_uuid || !clusters) return []
+    const environmentClusters = clusters.filter(
+      (cluster) => cluster.environment?.uuid === instanceData.environment_uuid
+    )
+    // Pegar recursos de todos os clusters que têm Gateway API habilitado
+    const allResources = new Set<string>()
+    environmentClusters.forEach((cluster) => {
+      if (cluster.gateway?.api?.enabled && cluster.gateway.api.resources) {
+        cluster.gateway.api.resources.forEach((resource) => allResources.add(resource))
+      }
+    })
+    return Array.from(allResources)
+  }, [instanceData.environment_uuid, clusters])
+
+  // Obter referência do Gateway (namespace e name) dos clusters do environment selecionado
+  const gatewayReference = useMemo(() => {
+    if (!instanceData.environment_uuid || !clusters) return { namespace: '', name: '' }
+    const environmentClusters = clusters.filter(
+      (cluster) => cluster.environment?.uuid === instanceData.environment_uuid
+    )
+    // Pegar o primeiro gateway reference encontrado que tenha namespace e name preenchidos
+    for (const cluster of environmentClusters) {
+      if (cluster.gateway?.reference) {
+        const namespace = cluster.gateway.reference.namespace || ''
+        const name = cluster.gateway.reference.name || ''
+        if (namespace && name) {
+          return { namespace, name }
+        }
+      }
+    }
+    return { namespace: '', name: '' }
+  }, [instanceData.environment_uuid, clusters])
+
   // Components
   const [components, setComponents] = useState<ComponentFormData[]>([])
+  const [isComponentTypeDropdownOpen, setIsComponentTypeDropdownOpen] = useState(false)
 
-  const addComponent = () => {
-    setComponents([
-      ...components,
-      {
-        name: '',
-        type: 'webapp',
-        url: null,
-        is_public: false,
-        enabled: true,
-        settings: getDefaultWebappSettings(),
-      },
-    ])
+  const addComponent = (type: 'webapp' | 'worker' | 'cron' = 'webapp') => {
+    if (type === 'webapp') {
+      setComponents([
+        ...components,
+        {
+          name: '',
+          type: 'webapp',
+          url: null,
+          visibility: 'private',
+          enabled: true,
+          settings: getDefaultWebappSettings(),
+        },
+      ])
+    } else if (type === 'cron') {
+      setComponents([
+        ...components,
+        {
+          name: '',
+          type: 'cron',
+          url: null,
+          visibility: 'private',
+          enabled: true,
+          settings: getDefaultCronSettings(),
+        },
+      ])
+    } else {
+      setComponents([
+        ...components,
+        {
+          name: '',
+          type: 'worker',
+          url: null,
+          visibility: 'private',
+          enabled: true,
+          settings: getDefaultWorkerSettings(),
+        },
+      ])
+    }
+    setIsComponentTypeDropdownOpen(false)
   }
 
   const removeComponent = (index: number) => {
@@ -93,10 +172,16 @@ function CreateInstance() {
         setTimeout(() => setNotification(null), 5000)
         return
       }
-      if (component.type === 'webapp' && !component.url) {
-        setNotification({ type: 'error', message: 'Webapp components must have a URL' })
-        setTimeout(() => setNotification(null), 5000)
-        return
+      if (component.type === 'webapp') {
+        const settings = component.settings as any
+        const exposureType = settings?.exposure?.type || 'http'
+        const exposureVisibility = settings?.exposure?.visibility || 'cluster'
+        // URL is required only if exposure.type is 'http' AND visibility is not 'cluster'
+        if (exposureType === 'http' && exposureVisibility !== 'cluster' && !component.url) {
+          setNotification({ type: 'error', message: 'Webapp components with HTTP exposure type and visibility \'public\' or \'private\' must have a URL' })
+          setTimeout(() => setNotification(null), 5000)
+          return
+        }
       }
       if (component.type === 'cron' && 'schedule' in component.settings && !component.settings.schedule) {
         setNotification({ type: 'error', message: 'Cron components must have a schedule' })
@@ -124,13 +209,22 @@ function CreateInstance() {
               enabled: component.enabled,
             }
             return cronsApi.create(componentData)
+          } else if (component.type === 'worker') {
+            const componentData: ApplicationComponentCreate = {
+              instance_uuid: instance.uuid,
+              name: component.name,
+              type: 'worker',
+              settings: component.settings,
+              enabled: component.enabled,
+            }
+            return workersApi.create(componentData)
           } else {
             const componentData: ApplicationComponentCreate = {
               instance_uuid: instance.uuid,
               name: component.name,
               type: 'webapp',
               settings: component.settings,
-              is_public: component.is_public,
+              visibility: component.visibility,
               url: component.url,
               enabled: component.enabled,
             }
@@ -204,14 +298,61 @@ function CreateInstance() {
           <div className="bg-white rounded-xl shadow-soft border border-slate-200/60 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-slate-800">Components</h2>
-              <button
-                type="button"
-                onClick={addComponent}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-soft hover:shadow-soft-lg transition-all duration-200 text-sm font-medium"
-              >
-                <Plus size={18} />
-                Add Component
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsComponentTypeDropdownOpen(!isComponentTypeDropdownOpen)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-soft hover:shadow-soft-lg transition-all duration-200 text-sm font-medium"
+                >
+                  <Plus size={18} />
+                  <span>Add Component</span>
+                  {isComponentTypeDropdownOpen ? (
+                    <ChevronUp size={16} />
+                  ) : (
+                    <ChevronDown size={16} />
+                  )}
+                </button>
+                {isComponentTypeDropdownOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setIsComponentTypeDropdownOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 z-20">
+                      <button
+                        type="button"
+                        onClick={() => addComponent('webapp')}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Plus size={16} />
+                          <span>Webapp</span>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addComponent('cron')}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Plus size={16} />
+                          <span>Cron</span>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addComponent('worker')}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Plus size={16} />
+                          <span>Worker</span>
+                        </div>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Info Card */}
@@ -244,6 +385,9 @@ function CreateInstance() {
                     component={component}
                     onChange={(updatedComponent) => updateComponent(index, updatedComponent)}
                     onRemove={() => removeComponent(index)}
+                    hasGatewayApi={hasGatewayApi}
+                    gatewayResources={gatewayResources}
+                    gatewayReference={gatewayReference}
                     title={`Component ${index + 1}`}
                   />
                 ))}

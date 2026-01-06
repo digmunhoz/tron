@@ -109,6 +109,51 @@ def upgrade() -> None:
     op.create_index(op.f('ix_templates_name'), 'templates', ['name'], unique=False)
     op.create_index(op.f('ix_templates_category'), 'templates', ['category'], unique=False)
 
+    # Create users table
+    op.create_table(
+        'users',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('uuid', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('email', sa.String(), nullable=False),
+        sa.Column('hashed_password', sa.String(), nullable=True),
+        sa.Column('full_name', sa.String(), nullable=True),
+        sa.Column('is_active', sa.Boolean(), nullable=False),
+        sa.Column('role', sa.String(), nullable=False),
+        sa.Column('google_id', sa.String(), nullable=True),
+        sa.Column('avatar_url', sa.String(), nullable=True),
+        sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('email'),
+        sa.UniqueConstraint('google_id'),
+        sa.UniqueConstraint('uuid')
+    )
+    op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
+    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
+    op.create_index(op.f('ix_users_google_id'), 'users', ['google_id'], unique=False)
+
+    # Create tokens table
+    op.create_table(
+        'tokens',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('uuid', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('name', sa.String(), nullable=False),
+        sa.Column('token_hash', sa.String(), nullable=False),
+        sa.Column('role', sa.String(), nullable=False),
+        sa.Column('is_active', sa.Boolean(), nullable=False),
+        sa.Column('user_id', sa.Integer(), nullable=True),
+        sa.Column('last_used_at', sa.DateTime(), nullable=True),
+        sa.Column('expires_at', sa.DateTime(), nullable=True),
+        sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('token_hash'),
+        sa.UniqueConstraint('uuid')
+    )
+    op.create_index(op.f('ix_tokens_id'), 'tokens', ['id'], unique=False)
+    op.create_index(op.f('ix_tokens_token_hash'), 'tokens', ['token_hash'], unique=True)
+
     # Create component_template_configs table
     op.create_table(
         'component_template_configs',
@@ -157,7 +202,6 @@ def upgrade() -> None:
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('type', postgresql.ENUM('webapp', 'worker', 'cron', name='webapptype', create_type=False), nullable=False),
         sa.Column('settings', sa.JSON(), nullable=True),
-        sa.Column('is_public', sa.Boolean(), nullable=False),
         sa.Column('url', sa.String(), nullable=True),
         sa.Column('enabled', sa.Boolean(), nullable=False),
         sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
@@ -201,6 +245,15 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_component_template_configs_component_type'), table_name='component_template_configs')
     op.drop_index(op.f('ix_component_template_configs_id'), table_name='component_template_configs')
     op.drop_table('component_template_configs')
+
+    op.drop_index(op.f('ix_tokens_token_hash'), table_name='tokens')
+    op.drop_index(op.f('ix_tokens_id'), table_name='tokens')
+    op.drop_table('tokens')
+
+    op.drop_index(op.f('ix_users_google_id'), table_name='users')
+    op.drop_index(op.f('ix_users_email'), table_name='users')
+    op.drop_index(op.f('ix_users_id'), table_name='users')
+    op.drop_table('users')
 
     op.drop_index(op.f('ix_templates_category'), table_name='templates')
     op.drop_index(op.f('ix_templates_name'), table_name='templates')

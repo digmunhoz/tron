@@ -35,17 +35,23 @@ class InstanceComponent(BaseModel):
 
     @model_validator(mode='before')
     @classmethod
-    def convert_datetime_to_string(cls, data: Any) -> Any:
+    def convert_datetime_to_string_and_remove_visibility(cls, data: Any) -> Any:
         if isinstance(data, dict):
             if 'created_at' in data and isinstance(data['created_at'], datetime):
                 data['created_at'] = data['created_at'].isoformat()
             if 'updated_at' in data and isinstance(data['updated_at'], datetime):
                 data['updated_at'] = data['updated_at'].isoformat()
+            # Remover visibility se existir (não é mais parte do modelo)
+            if 'visibility' in data:
+                del data['visibility']
         elif hasattr(data, '__dict__'):
             if hasattr(data, 'created_at') and isinstance(data.created_at, datetime):
                 data.created_at = data.created_at.isoformat()
             if hasattr(data, 'updated_at') and isinstance(data.updated_at, datetime):
                 data.updated_at = data.updated_at.isoformat()
+            # Remover visibility se existir (não é mais parte do modelo)
+            if hasattr(data, 'visibility'):
+                delattr(data, 'visibility')
         return data
 
     model_config = ConfigDict(

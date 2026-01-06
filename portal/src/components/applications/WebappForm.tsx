@@ -3,7 +3,7 @@ import { CpuMemoryInput } from './form-components/CpuMemoryInput'
 import { ScalingThresholdsInput } from './form-components/ScalingThresholdsInput'
 import { AutoscalingInput } from './form-components/AutoscalingInput'
 import { HealthcheckInput } from './form-components/HealthcheckInput'
-import { EndpointsInput } from './form-components/EndpointsInput'
+import { ExposureInput } from './form-components/ExposureInput'
 import { CustomMetricsInput } from './form-components/CustomMetricsInput'
 import { EnvVarsInput } from './form-components/EnvVarsInput'
 import { CommandInput } from './form-components/CommandInput'
@@ -11,9 +11,14 @@ import { CommandInput } from './form-components/CommandInput'
 interface WebappFormProps {
   settings: WebappSettings
   onChange: (settings: WebappSettings) => void
+  url?: string | null
+  onUrlChange?: (url: string | null) => void
+  hasGatewayApi?: boolean
+  gatewayResources?: string[]
+  gatewayReference?: { namespace: string; name: string }
 }
 
-export function WebappForm({ settings, onChange }: WebappFormProps) {
+export function WebappForm({ settings, onChange, url, onUrlChange, hasGatewayApi = true, gatewayResources = [], gatewayReference = { namespace: '', name: '' } }: WebappFormProps) {
   const updateField = <K extends keyof WebappSettings>(field: K, value: WebappSettings[K]) => {
     onChange({ ...settings, [field]: value })
   }
@@ -41,14 +46,19 @@ export function WebappForm({ settings, onChange }: WebappFormProps) {
         onChange={(autoscaling) => updateField('autoscaling', autoscaling)}
       />
 
+      <ExposureInput
+        exposure={settings.exposure}
+        onChange={(exposure) => updateField('exposure', exposure)}
+        url={url}
+        onUrlChange={onUrlChange}
+        hasGatewayApi={hasGatewayApi}
+        gatewayResources={gatewayResources}
+        gatewayReference={gatewayReference}
+      />
+
       <HealthcheckInput
         healthcheck={settings.healthcheck}
         onChange={(healthcheck) => updateField('healthcheck', healthcheck)}
-      />
-
-      <EndpointsInput
-        endpoints={settings.endpoints}
-        onChange={(endpoints) => updateField('endpoints', endpoints)}
       />
 
       <CustomMetricsInput

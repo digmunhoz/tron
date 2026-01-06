@@ -35,6 +35,32 @@ def serialize_application_component(application_component):
     if not settings:
         settings = {}
 
+    # Garantir que webapps sempre tenham exposure definido
+    component_type = application_component.type.value if hasattr(application_component.type, 'value') else str(application_component.type)
+    if component_type == 'webapp' and 'exposure' not in settings:
+        settings['exposure'] = {
+            'type': 'http',
+            'port': 80,
+            'visibility': 'cluster'
+        }
+    elif component_type == 'webapp' and settings.get('exposure') is None:
+        settings['exposure'] = {
+            'type': 'http',
+            'port': 80,
+            'visibility': 'cluster'
+        }
+
+    # Converter Enums para strings nos settings (especialmente exposure.visibility)
+    if settings and 'exposure' in settings and isinstance(settings.get('exposure'), dict):
+        exposure = settings['exposure']
+        if 'visibility' in exposure:
+            # Se visibility for um Enum, converter para string
+            visibility_value = exposure['visibility']
+            if hasattr(visibility_value, 'value'):
+                exposure['visibility'] = visibility_value.value
+            elif not isinstance(visibility_value, str):
+                exposure['visibility'] = str(visibility_value)
+
     return {
         "component_name": application_component.name,
         "component_uuid": str(application_component.uuid),
@@ -45,7 +71,6 @@ def serialize_application_component(application_component):
         "environment_uuid": str(application_component.instance.environment.uuid),
         "image": application_component.instance.image,
         "version": application_component.instance.version,
-        "is_public": application_component.is_public,
         "url": application_component.url,
         "enabled": application_component.enabled,
         "settings": settings

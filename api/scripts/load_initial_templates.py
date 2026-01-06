@@ -49,12 +49,11 @@ def get_variables_schema() -> str:
         "port": "number",
         "path": "string"
       },
-      "endpoints": [
-        {
-          "source_port": "number",
-          "dest_port": "number"
-        }
-      ],
+      "exposure": {
+        "type": "string",
+        "port": "number",
+        "visibility": "string"
+      },
       "envs": [
         {
           "key": "string",
@@ -97,29 +96,50 @@ def load_templates(db: Session):
         # Templates Webapp
         {
             "name": "Webapp Deployment",
-            "description": "Template de Deployment para componentes webapp",
+            "description": "Deployment template for webapp components",
             "category": "webapp",
             "file_path": webapp_dir / "deployment.yaml.j2",
             "render_order": 1,
         },
         {
             "name": "Webapp Service",
-            "description": "Template de Service para componentes webapp",
+            "description": "Service template for webapp components",
             "category": "webapp",
             "file_path": webapp_dir / "service.yaml.j2",
             "render_order": 2,
         },
         {
             "name": "Webapp HPA",
-            "description": "Template de HorizontalPodAutoscaler para componentes webapp",
+            "description": "HorizontalPodAutoscaler template for webapp components",
             "category": "webapp",
             "file_path": webapp_dir / "hpa.yaml.j2",
             "render_order": 3,
         },
+        {
+            "name": "Webapp HTTPRoute",
+            "description": "HTTPRoute template for webapp components",
+            "category": "webapp",
+            "file_path": webapp_dir / "httproute.yaml.j2",
+            "render_order": 4,
+        },
+        {
+            "name": "Webapp TCPRoute",
+            "description": "TCPRoute template for webapp components",
+            "category": "webapp",
+            "file_path": webapp_dir / "tcproute.yaml.j2",
+            "render_order": 5,
+        },
+        {
+            "name": "Webapp UDPRoute",
+            "description": "UDPRoute template for webapp components",
+            "category": "webapp",
+            "file_path": webapp_dir / "udproute.yaml.j2",
+            "render_order": 6,
+        },
         # Templates Cron
         {
             "name": "Cron CronJob",
-            "description": "Template de CronJob para componentes cron",
+            "description": "CronJob template for cron components",
             "category": "cron",
             "file_path": cron_dir / "cron.yaml.j2",
             "render_order": 1,
@@ -127,14 +147,14 @@ def load_templates(db: Session):
 
         {
             "name": "Worker Deployment",
-            "description": "Template de Deployment para componentes worker",
+            "description": "Deployment template for worker components",
             "category": "worker",
             "file_path": worker_dir / "deployment.yaml.j2",
             "render_order": 1,
         },
         {
             "name": "Worker HPA",
-            "description": "Template de HorizontalPodAutoscaler para componentes worker",
+            "description": "HorizontalPodAutoscaler template for worker components",
             "category": "worker",
             "file_path": worker_dir / "hpa.yaml.j2",
             "render_order": 2,

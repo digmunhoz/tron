@@ -4,12 +4,11 @@ export interface WebappSettings {
     path: string
     port: number
   }
-  endpoints: Array<{
-    source_protocol: 'http' | 'https' | 'tcp' | 'tls'
-    source_port: number
-    dest_protocol: 'http' | 'https' | 'tcp' | 'tls'
-    dest_port: number
-  }>
+  exposure: {
+    type: 'http' | 'tcp' | 'udp'
+    port: number
+    visibility: 'cluster' | 'private' | 'public'
+  }
   envs: Array<{
     key: string
     value: string
@@ -66,11 +65,13 @@ export interface WorkerSettings {
   }
 }
 
+export type VisibilityType = 'public' | 'private' | 'cluster'
+
 export interface ComponentFormData {
   name: string
   type: 'webapp' | 'worker' | 'cron'
   url: string | null
-  is_public: boolean
+  visibility?: VisibilityType // Optional, only used for worker (legacy), webapp uses settings.exposure.visibility
   enabled: boolean
   settings: WebappSettings | CronSettings | WorkerSettings | null
 }
@@ -81,14 +82,11 @@ export const getDefaultWebappSettings = (): WebappSettings => ({
     path: '/metrics',
     port: 8080,
   },
-  endpoints: [
-    {
-      source_protocol: 'http',
-      source_port: 80,
-      dest_protocol: 'http',
-      dest_port: 8080,
-    },
-  ],
+  exposure: {
+    type: 'http',
+    port: 80,
+    visibility: 'cluster',
+  },
   envs: [],
   command: null,
   cpu_scaling_threshold: 80,

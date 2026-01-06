@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Trash2, Plus, Pencil, ChevronDown, ChevronRight, Server, ChevronUp, AlertCircle, MoreVertical, RefreshCw } from 'lucide-react'
-import { applicationComponentsApi, instancesApi, applicationsApi, cronsApi, workersApi } from '../../services/api'
+import { applicationComponentsApi, instancesApi, applicationsApi, cronsApi, workersApi, clustersApi } from '../../services/api'
 import type { ApplicationComponentCreate, InstanceComponent } from '../../types'
-import { ComponentForm, type ComponentFormData, getDefaultWebappSettings, getDefaultCronSettings, getDefaultWorkerSettings } from '../../components/applications'
+import { ComponentForm, type ComponentFormData, getDefaultWebappSettings, getDefaultCronSettings, getDefaultWorkerSettings, type WebappSettings } from '../../components/applications'
 import { Breadcrumbs } from '../../components/Breadcrumbs'
 import { PageHeader } from '../../components/PageHeader'
 import DataTable from '../../components/DataTable'
@@ -26,9 +26,61 @@ function InstanceDetail() {
     enabled: !!applicationUuid,
   })
 
+  // Buscar clusters para verificar se algum tem gateway_api disponível
+  const { data: clusters } = useQuery({
+    queryKey: ['clusters'],
+    queryFn: () => clustersApi.list(),
+  })
+
+  // Verificar se algum cluster do environment do instance tem gateway_api disponível
+  const hasGatewayApi = useMemo(() => {
+    if (!instance || !clusters || !instance.environment) return false
+    const environmentClusters = clusters.filter(
+      (cluster) => cluster.environment?.uuid === instance.environment.uuid
+    )
+    return environmentClusters.some((cluster) => cluster.gateway?.api?.enabled === true)
+  }, [instance, clusters])
+
+  // Obter recursos do Gateway API disponíveis nos clusters do environment
+  const gatewayResources = useMemo(() => {
+    if (!instance || !clusters || !instance.environment) return []
+    const environmentClusters = clusters.filter(
+      (cluster) => cluster.environment?.uuid === instance.environment.uuid
+    )
+    // Pegar recursos de todos os clusters que têm Gateway API habilitado
+    const allResources = new Set<string>()
+    environmentClusters.forEach((cluster) => {
+      if (cluster.gateway?.api?.enabled && cluster.gateway.api.resources) {
+        cluster.gateway.api.resources.forEach((resource) => allResources.add(resource))
+      }
+    })
+    return Array.from(allResources)
+  }, [instance, clusters])
+
+  // Obter referência do Gateway (namespace e name) dos clusters do environment
+  const gatewayReference = useMemo(() => {
+    if (!instance || !clusters || !instance.environment) return { namespace: '', name: '' }
+    const environmentClusters = clusters.filter(
+      (cluster) => cluster.environment?.uuid === instance.environment.uuid
+    )
+    // Pegar o primeiro gateway reference encontrado que tenha namespace e name preenchidos
+    for (const cluster of environmentClusters) {
+      if (cluster.gateway?.reference) {
+        const namespace = cluster.gateway.reference.namespace || ''
+        const name = cluster.gateway.reference.name || ''
+        if (namespace && name) {
+          return { namespace, name }
+        }
+      }
+    }
+    return { namespace: '', name: '' }
+  }, [instance, clusters])
+
   const [editingComponentUuid, setEditingComponentUuid] = useState<string | null>(null)
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [modalNotification, setModalNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isAddComponentsModalOpen, setIsAddComponentsModalOpen] = useState(false)
+  const modalContentRef = useRef<HTMLDivElement>(null)
   const [isEditInstanceModalOpen, setIsEditInstanceModalOpen] = useState(false)
   const [expandedTypes, setExpandedTypes] = useState<Set<'webapp' | 'worker' | 'cron'>>(new Set(['webapp', 'worker', 'cron']))
   const [isComponentTypeDropdownOpen, setIsComponentTypeDropdownOpen] = useState(false)
@@ -52,7 +104,6 @@ function InstanceDetail() {
         name: '',
         type: 'webapp',
         url: null,
-        is_public: false,
         enabled: true,
         settings: getDefaultWebappSettings(),
       })
@@ -61,7 +112,6 @@ function InstanceDetail() {
         name: '',
         type: 'cron',
         url: null,
-        is_public: false,
         enabled: true,
         settings: getDefaultCronSettings(),
       })
@@ -70,7 +120,7 @@ function InstanceDetail() {
         name: '',
         type: 'worker',
         url: null,
-        is_public: false,
+        visibility: 'private',
         enabled: true,
         settings: getDefaultWorkerSettings(),
       })
@@ -84,19 +134,47 @@ function InstanceDetail() {
     if (componentType === 'webapp') {
       const defaultSettings = getDefaultWebappSettings()
       const existingSettings = (componentData.settings as ComponentFormData['settings']) || defaultSettings
+      // Migrar endpoints para exposure se necessário
+      let exposure = defaultSettings.exposure
+      if (existingSettings && 'exposure' in existingSettings) {
+        exposure = (existingSettings as WebappSettings).exposure
+      } else if (existingSettings && 'endpoints' in existingSettings) {
+        // Migrar de endpoints antigo para exposure
+        const oldEndpoints = existingSettings.endpoints as any
+        let oldEndpoint: any = null
+        if (Array.isArray(oldEndpoints)) {
+          oldEndpoint = oldEndpoints[0] || null
+        } else if (oldEndpoints && typeof oldEndpoints === 'object') {
+          oldEndpoint = oldEndpoints
+        }
+        if (oldEndpoint) {
+          exposure = {
+            type: oldEndpoint.source_protocol || 'http',
+            port: oldEndpoint.source_port || 80,
+            visibility: 'cluster',
+          }
+        }
+      }
       // Garantir que autoscaling existe, mesclando com valores padrão se necessário
       const settings = {
         ...defaultSettings,
         ...existingSettings,
+        exposure,
         autoscaling: existingSettings && 'autoscaling' in existingSettings
           ? existingSettings.autoscaling
           : defaultSettings.autoscaling,
       }
+      // Obter visibility de settings.exposure.visibility ou usar default
+      let visibility: 'public' | 'private' | 'cluster' = 'cluster'
+      if (settings && 'exposure' in settings && settings.exposure && 'visibility' in settings.exposure) {
+        visibility = (settings.exposure as any).visibility as 'public' | 'private' | 'cluster'
+      }
+
       setComponent({
         name: componentData.name,
         type: 'webapp',
         url: componentData.url,
-        is_public: false, // TODO: get from component if available
+        visibility,
         enabled: componentData.enabled,
         settings,
       })
@@ -105,7 +183,7 @@ function InstanceDetail() {
         name: componentData.name,
         type: 'cron',
         url: null,
-        is_public: false,
+        visibility: 'private',
         enabled: componentData.enabled,
         settings: (componentData.settings as ComponentFormData['settings']) || getDefaultCronSettings(),
       })
@@ -124,7 +202,7 @@ function InstanceDetail() {
         name: componentData.name,
         type: 'worker',
         url: null,
-        is_public: false,
+        visibility: 'private',
         enabled: componentData.enabled,
         settings,
       })
@@ -141,15 +219,19 @@ function InstanceDetail() {
       queryClient.invalidateQueries({ queryKey: ['application-components'] })
       setEditingComponentUuid(null)
       setComponent(null)
+      setModalNotification(null)
       setIsAddComponentsModalOpen(false)
       setTimeout(() => setNotification(null), 5000)
     },
     onError: (error: any) => {
-      setNotification({
+      setModalNotification({
         type: 'error',
         message: error.response?.data?.detail || 'Error updating component',
       })
-      setTimeout(() => setNotification(null), 5000)
+      // Scroll to top of modal to show error
+      setTimeout(() => {
+        modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+      }, 100)
     },
   })
 
@@ -177,15 +259,19 @@ function InstanceDetail() {
       queryClient.invalidateQueries({ queryKey: ['instances'] })
       queryClient.invalidateQueries({ queryKey: ['application-components'] })
       setComponent(null)
+      setModalNotification(null)
       setIsAddComponentsModalOpen(false)
       setTimeout(() => setNotification(null), 5000)
     },
     onError: (error: any) => {
-      setNotification({
+      setModalNotification({
         type: 'error',
         message: error.response?.data?.detail || 'Error adding component',
       })
-      setTimeout(() => setNotification(null), 5000)
+      // Scroll to top of modal to show error
+      setTimeout(() => {
+        modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+      }, 100)
     },
   })
 
@@ -331,20 +417,39 @@ function InstanceDetail() {
   // Colunas específicas para webapp
   const webappColumns = useMemo(() => [
     {
-      key: 'endpoints',
-      label: 'Endpoints',
+      key: 'exposure',
+      label: 'Exposure',
       render: (component: InstanceComponent) => {
-        const endpoints = (component.settings as any)?.endpoints || []
-        if (endpoints.length === 0) {
-          return <div className="text-sm text-slate-400">No endpoints</div>
+        const settings = (component.settings as any) || {}
+        let exposure = settings.exposure
+
+        // Migrar de endpoints antigo para exposure se necessário
+        if (!exposure && settings.endpoints) {
+          const oldEndpoints = settings.endpoints
+          let oldEndpoint: any = null
+          if (Array.isArray(oldEndpoints)) {
+            oldEndpoint = oldEndpoints.length > 0 ? oldEndpoints[0] : null
+          } else if (oldEndpoints && typeof oldEndpoints === 'object') {
+            oldEndpoint = oldEndpoints
+          }
+          if (oldEndpoint) {
+            exposure = {
+              type: oldEndpoint.source_protocol || 'http',
+              port: oldEndpoint.source_port || 80,
+              visibility: 'cluster',
+            }
+          }
         }
+
+        if (!exposure || !exposure.port) {
+          return <div className="text-sm text-slate-400">No exposure</div>
+        }
+
         return (
           <div className="text-sm text-slate-600">
-            {endpoints.map((endpoint: any, idx: number) => (
-              <div key={idx} className="text-xs">
-                {endpoint.source_protocol}:{endpoint.source_port} → {endpoint.dest_protocol}:{endpoint.dest_port}
-              </div>
-            ))}
+            <div className="text-xs">
+              {exposure.type}:{exposure.port} ({exposure.visibility})
+            </div>
           </div>
         )
       },
@@ -353,12 +458,22 @@ function InstanceDetail() {
       key: 'visibility',
       label: 'Visibility',
       render: (component: InstanceComponent) => {
-        const isPublic = (component as any).is_public ?? false
+        // Obter visibility de settings.exposure.visibility
+        let visibility = 'cluster'
+        const settings = component.settings || {}
+        if (settings.exposure && settings.exposure.visibility) {
+          visibility = settings.exposure.visibility
+        }
+
         return (
           <div>
-            {isPublic ? (
+            {visibility === 'public' ? (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 Public
+              </span>
+            ) : visibility === 'cluster' ? (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                Cluster
               </span>
             ) : (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
@@ -677,14 +792,14 @@ function InstanceDetail() {
 
       {notification && (
         <div
-          className={`rounded-lg p-4 flex items-center justify-between ${
+          className={`rounded-lg p-4 flex items-center justify-between mb-4 ${
             notification.type === 'success'
-              ? 'bg-success/10 border border-success/20 text-success'
-              : 'bg-error/10 border border-error/20 text-error'
+              ? 'bg-green-50 border border-green-200 text-green-800'
+              : 'bg-red-50 border border-red-200 text-red-800'
           }`}
         >
           <span>{notification.message}</span>
-          <button onClick={() => setNotification(null)}>
+          <button onClick={() => setNotification(null)} className="ml-4 text-slate-400 hover:text-slate-600">
             <X size={16} />
           </button>
         </div>
@@ -786,7 +901,7 @@ function InstanceDetail() {
         {/* Add Components Modal */}
         {isAddComponentsModalOpen && instance && (
           <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-soft-lg max-w-4xl w-full border border-slate-200/60 animate-zoom-in max-h-[90vh] overflow-y-auto">
+            <div ref={modalContentRef} className="bg-white rounded-xl shadow-soft-lg max-w-4xl w-full border border-slate-200/60 animate-zoom-in max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-5 border-b border-slate-200/60 bg-slate-50/50 sticky top-0 z-10">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-800">
@@ -801,6 +916,7 @@ function InstanceDetail() {
                     setIsAddComponentsModalOpen(false)
                     setComponent(null)
                     setEditingComponentUuid(null)
+                    setModalNotification(null)
                   }}
                   className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-white rounded-md transition-colors"
                 >
@@ -808,12 +924,32 @@ function InstanceDetail() {
                 </button>
               </div>
               <div className="p-5">
+                {modalNotification && (
+                  <div
+                    className={`mb-4 rounded-lg p-4 flex items-center justify-between ${
+                      modalNotification.type === 'success'
+                        ? 'bg-green-50 border border-green-200 text-green-800'
+                        : 'bg-red-50 border border-red-200 text-red-800'
+                    }`}
+                  >
+                    <span className="text-sm">{modalNotification.message}</span>
+                    <button
+                      onClick={() => setModalNotification(null)}
+                      className="ml-4 text-slate-400 hover:text-slate-600"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
                 {component ? (
                   <ComponentForm
                     component={component}
                     onChange={setComponent}
                     showRemoveButton={false}
                     isEditing={!!editingComponentUuid}
+                    hasGatewayApi={hasGatewayApi}
+                    gatewayResources={gatewayResources}
+                    gatewayReference={gatewayReference}
                     title={editingComponentUuid
                       ? `Edit ${component.type.charAt(0).toUpperCase() + component.type.slice(1)}`
                       : `Add ${component.type.charAt(0).toUpperCase() + component.type.slice(1)}`}
@@ -829,6 +965,7 @@ function InstanceDetail() {
                     setIsAddComponentsModalOpen(false)
                     setComponent(null)
                     setEditingComponentUuid(null)
+                    setModalNotification(null)
                   }}
                   className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
                 >
@@ -842,37 +979,51 @@ function InstanceDetail() {
 
                         // Validate component before submitting
                         if (!editingComponentUuid && !component.name) {
-                          setNotification({
+                          setModalNotification({
                             type: 'error',
                             message: 'Component name is required',
                           })
-                          setTimeout(() => setNotification(null), 5000)
+                          setTimeout(() => {
+                            modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+                          }, 100)
                           return
                         }
                         if (!component.settings) {
-                          setNotification({
+                          setModalNotification({
                             type: 'error',
                             message: 'Component settings are required',
                           })
-                          setTimeout(() => setNotification(null), 5000)
+                          setTimeout(() => {
+                            modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+                          }, 100)
                           return
                         }
 
-                        if (component.type === 'webapp' && !component.url) {
-                          setNotification({
-                            type: 'error',
-                            message: 'Webapp components must have a URL',
-                          })
-                          setTimeout(() => setNotification(null), 5000)
-                          return
+                        if (component.type === 'webapp') {
+                          const settings = component.settings as WebappSettings | null
+                          const exposureType = settings?.exposure?.type || 'http'
+                          const exposureVisibility = settings?.exposure?.visibility || 'cluster'
+                          // URL is required only if exposure.type is 'http' AND visibility is not 'cluster'
+                          if (exposureType === 'http' && exposureVisibility !== 'cluster' && !component.url) {
+                            setModalNotification({
+                              type: 'error',
+                              message: 'Webapp components with HTTP exposure type and visibility \'public\' or \'private\' must have a URL',
+                            })
+                            setTimeout(() => {
+                              modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+                            }, 100)
+                            return
+                          }
                         }
 
                         if (component.type === 'cron' && 'schedule' in component.settings && !component.settings.schedule) {
-                          setNotification({
+                          setModalNotification({
                             type: 'error',
                             message: 'Cron components must have a schedule',
                           })
-                          setTimeout(() => setNotification(null), 5000)
+                          setTimeout(() => {
+                            modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+                          }, 100)
                           return
                         }
 
@@ -890,14 +1041,17 @@ function InstanceDetail() {
                               queryClient.invalidateQueries({ queryKey: ['application-components'] })
                               setEditingComponentUuid(null)
                               setComponent(null)
+                              setModalNotification(null)
                               setIsAddComponentsModalOpen(false)
                               setTimeout(() => setNotification(null), 5000)
                             }).catch((error: any) => {
-                              setNotification({
+                              setModalNotification({
                                 type: 'error',
                                 message: error.response?.data?.detail || 'Error updating component',
                               })
-                              setTimeout(() => setNotification(null), 5000)
+                              setTimeout(() => {
+                                modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+                              }, 100)
                             })
                           } else if (component.type === 'worker') {
                             const componentData: Partial<ApplicationComponentCreate> = {
@@ -911,22 +1065,39 @@ function InstanceDetail() {
                               queryClient.invalidateQueries({ queryKey: ['application-components'] })
                               setEditingComponentUuid(null)
                               setComponent(null)
+                              setModalNotification(null)
                               setIsAddComponentsModalOpen(false)
                               setTimeout(() => setNotification(null), 5000)
                             }).catch((error: any) => {
-                              setNotification({
+                              setModalNotification({
                                 type: 'error',
                                 message: error.response?.data?.detail || 'Error updating component',
                               })
-                              setTimeout(() => setNotification(null), 5000)
+                              setTimeout(() => {
+                                modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+                              }, 100)
                             })
                           } else {
+                            // exposure.visibility já está em settings.exposure.visibility
+                            const settings = component.settings as WebappSettings
+                            const finalSettings = {
+                              ...settings,
+                              exposure: {
+                                ...settings.exposure,
+                              },
+                            }
+                            const exposureType = finalSettings.exposure?.type || 'http'
+                            const exposureVisibility = finalSettings.exposure?.visibility || 'cluster'
                             const componentData: Partial<ApplicationComponentCreate> = {
                               type: 'webapp',
-                              settings: component.settings,
-                              is_public: component.is_public,
-                              url: component.url!,
+                              settings: finalSettings,
+                              // visibility não é mais enviado no payload do webapp, apenas exposure.visibility
                               enabled: component.enabled,
+                            }
+                            // Incluir URL apenas se exposure.type for 'http' AND visibility não for 'cluster'
+                            // Se não for HTTP ou visibility for cluster, não incluir o campo url no payload (não enviar null)
+                            if (exposureType === 'http' && exposureVisibility !== 'cluster') {
+                              componentData.url = component.url || null
                             }
                             updateComponentMutation.mutate({ uuid: editingComponentUuid, data: componentData })
                           }
@@ -945,14 +1116,17 @@ function InstanceDetail() {
                               queryClient.invalidateQueries({ queryKey: ['instances'] })
                               queryClient.invalidateQueries({ queryKey: ['application-components'] })
                               setComponent(null)
+                              setModalNotification(null)
                               setIsAddComponentsModalOpen(false)
                               setTimeout(() => setNotification(null), 5000)
                             }).catch((error: any) => {
-                              setNotification({
+                              setModalNotification({
                                 type: 'error',
                                 message: error.response?.data?.detail || 'Error adding component',
                               })
-                              setTimeout(() => setNotification(null), 5000)
+                              setTimeout(() => {
+                                modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+                              }, 100)
                             })
                           } else if (component.type === 'worker') {
                             const componentData: ApplicationComponentCreate = {
@@ -967,24 +1141,41 @@ function InstanceDetail() {
                               queryClient.invalidateQueries({ queryKey: ['instances'] })
                               queryClient.invalidateQueries({ queryKey: ['application-components'] })
                               setComponent(null)
+                              setModalNotification(null)
                               setIsAddComponentsModalOpen(false)
                               setTimeout(() => setNotification(null), 5000)
                             }).catch((error: any) => {
-                              setNotification({
+                              setModalNotification({
                                 type: 'error',
                                 message: error.response?.data?.detail || 'Error adding component',
                               })
-                              setTimeout(() => setNotification(null), 5000)
+                              setTimeout(() => {
+                                modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+                              }, 100)
                             })
                           } else {
+                            // exposure.visibility já está em settings.exposure.visibility
+                            const settings = component.settings as WebappSettings
+                            const finalSettings = {
+                              ...settings,
+                              exposure: {
+                                ...settings.exposure,
+                              },
+                            }
+                            const exposureType = finalSettings.exposure?.type || 'http'
+                            const exposureVisibility = finalSettings.exposure?.visibility || 'cluster'
                             const componentData: ApplicationComponentCreate = {
                               instance_uuid: instance.uuid,
                               name: component.name,
                               type: 'webapp',
-                              settings: component.settings,
-                              is_public: component.is_public,
-                              url: component.url!,
+                              settings: finalSettings,
+                              // visibility não é mais enviado no payload do webapp, apenas exposure.visibility
                               enabled: component.enabled,
+                            }
+                            // Incluir URL apenas se exposure.type for 'http' AND visibility não for 'cluster' e URL não for null
+                            // Se não for HTTP ou visibility for cluster, não incluir o campo url no payload
+                            if (exposureType === 'http' && exposureVisibility !== 'cluster' && component.url) {
+                              componentData.url = component.url
                             }
                             addComponentToInstanceMutation.mutate(componentData)
                           }

@@ -50,7 +50,7 @@ function CreateApplication() {
         name: '',
         type: 'webapp',
         url: null,
-        is_public: false,
+        visibility: 'private',
         enabled: true,
         settings: getDefaultWebappSettings(),
       },
@@ -62,7 +62,7 @@ function CreateApplication() {
           name: '',
           type: 'cron',
           url: null,
-          is_public: false,
+          visibility: 'private',
           enabled: true,
           settings: getDefaultCronSettings(),
         },
@@ -74,7 +74,7 @@ function CreateApplication() {
           name: '',
           type: 'worker',
           url: null,
-          is_public: false,
+          visibility: 'private',
           enabled: true,
           settings: getDefaultWorkerSettings(),
         },
@@ -135,10 +135,16 @@ function CreateApplication() {
         setTimeout(() => setNotification(null), 5000)
         return
       }
-      if (component.type === 'webapp' && !component.url) {
-        setNotification({ type: 'error', message: 'Webapp components must have a URL' })
-        setTimeout(() => setNotification(null), 5000)
-        return
+      if (component.type === 'webapp') {
+        const settings = component.settings as any
+        const exposureType = settings?.exposure?.type || 'http'
+        const exposureVisibility = settings?.exposure?.visibility || 'cluster'
+        // URL is required only if exposure.type is 'http' AND visibility is not 'cluster'
+        if (exposureType === 'http' && exposureVisibility !== 'cluster' && !component.url) {
+          setNotification({ type: 'error', message: 'Webapp components with HTTP exposure type and visibility \'public\' or \'private\' must have a URL' })
+          setTimeout(() => setNotification(null), 5000)
+          return
+        }
       }
       if (component.type === 'cron' && 'schedule' in component.settings && !component.settings.schedule) {
         setNotification({ type: 'error', message: 'Cron components must have a schedule' })
@@ -184,7 +190,7 @@ function CreateApplication() {
           name: component.name,
           type: 'webapp',
           settings: component.settings,
-          is_public: component.is_public,
+          visibility: component.visibility,
           url: component.url,
           enabled: component.enabled,
         }

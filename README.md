@@ -182,6 +182,23 @@ A component is a functional part of an instance that gets deployed to Kubernetes
   - Component 2: `email-worker` (type: `worker`)
   - Component 3: `daily-report` (type: `cron`, schedule: `0 0 * * *`)
 
+### Gateway API Requirements
+
+For webapp components, the platform supports three visibility modes:
+
+- **Cluster**: Accessible only within the Kubernetes cluster via Service (default, always available)
+- **Private**: Internal access with Gateway API routing (requires Gateway API)
+- **Public**: External access with public endpoint (requires Gateway API)
+
+**Important**: To use **Public** or **Private** visibility modes, you must have a Gateway API component installed and configured in your Kubernetes cluster. The Gateway API provides the necessary resources (`HTTPRoute`, `TCPRoute`, `UDPRoute`) to route traffic to your webapp components.
+
+**Requirements for Public/Private visibility**:
+1. Gateway API CRDs must be installed in the cluster
+2. A Gateway resource must be created and configured in the cluster
+3. The Gateway must be properly referenced (namespace and name) in the cluster configuration
+
+If no Gateway is configured in the cluster, only the **Cluster** visibility mode will be available for webapp components.
+
 ### Hierarchy Summary
 
 ```

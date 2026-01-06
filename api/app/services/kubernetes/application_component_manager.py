@@ -18,7 +18,8 @@ class KubernetesApplicationComponentManager:
         application_component: dict,
         component_type: str,
         settings: Optional[dict] = None,
-        db: Optional[Session] = None
+        db: Optional[Session] = None,
+        gateway_reference: Optional[dict] = None
     ):
         """
         Renderiza templates Kubernetes para um componente de aplicação.
@@ -28,6 +29,7 @@ class KubernetesApplicationComponentManager:
             component_type: Tipo do componente (webapp, worker, cron)
             settings: Dict opcional com configurações do ambiente
             db: Sessão do banco de dados (obrigatória)
+            gateway_reference: Dict opcional com informações do gateway (namespace, name)
 
         Returns:
             Lista de dicionários YAML renderizados, ordenados por render_order
@@ -41,10 +43,22 @@ class KubernetesApplicationComponentManager:
         if settings is None:
             settings = {}
 
+        # Valores padrão para gateway_reference se não fornecido
+        if gateway_reference is None:
+            gateway_reference = {
+                "namespace": "",
+                "name": ""
+            }
+
         # Preparar variáveis para os templates
         variables = {
             "application": application_component,
-            "environment": settings
+            "environment": settings,
+            "cluster": {
+                "gateway": {
+                    "reference": gateway_reference
+                }
+            }
         }
 
         # Buscar templates configurados para o tipo de componente
@@ -65,7 +79,9 @@ class KubernetesApplicationComponentManager:
                 rendered_yaml = KubernetesApplicationComponentManager.render_template_from_string(
                     template.content, variables
                 )
-                combined_payloads.append(rendered_yaml)
+                # Filtrar documentos None (quando template não renderiza nada devido a condições)
+                if rendered_yaml is not None:
+                    combined_payloads.append(rendered_yaml)
             except Exception as e:
                 raise ValueError(
                     f"Error rendering template '{template.name}': {e}"
@@ -98,7 +114,18 @@ class KubernetesApplicationComponentManager:
 
         rendered_yaml = template.render(variables)
 
+        # Se o template renderizou uma string vazia ou apenas espaços em branco, retornar None
+        if not rendered_yaml or not rendered_yaml.strip():
+            return None
+
         try:
-            return yaml.safe_load(rendered_yaml)
+            # Usar safe_load para um único documento YAML
+            parsed_yaml = yaml.safe_load(rendered_yaml)
+            return parsed_yaml
         except yaml.YAMLError as e:
+            # Debug: log erro de parsing para httproute
+            if 'httproute' in template_content.lower():
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"HTTPRoute YAML parsing error: {e}. Rendered content:\n{rendered_yaml[:500]}")
             raise ValueError(f"Error parsing YAML template: {e}")

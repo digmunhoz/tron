@@ -26,7 +26,7 @@ const WEBAPP_VARIABLES = {
     environment_uuid: 'string',
     image: 'string',
     version: 'string',
-    is_public: 'boolean',
+    visibility: 'string',
     url: 'string | null',
     enabled: 'boolean',
     settings: {
@@ -43,7 +43,11 @@ const WEBAPP_VARIABLES = {
         path: 'string',
         port: 'number',
       },
-      endpoints: 'array<{source_protocol: string, source_port: number, dest_protocol: string, dest_port: number}>',
+      exposure: {
+        type: 'string (http|tcp|udp)',
+        port: 'number',
+        visibility: 'string (cluster|private|public)',
+      },
       envs: 'array<{key: string, value: string}>',
       command: 'string | null (will be parsed into array)',
       healthcheck: {
@@ -61,6 +65,14 @@ const WEBAPP_VARIABLES = {
     // Chaves dinâmicas baseadas nas settings do environment
     // Exemplo: { "key1": "value1", "key2": "value2", ... }
     '[key: string]': 'string',
+  },
+  cluster: {
+    gateway: {
+      reference: {
+        namespace: 'string',
+        name: 'string',
+      },
+    },
   },
 }
 

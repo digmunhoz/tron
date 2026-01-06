@@ -1,3 +1,18 @@
+export interface GatewayApiReference {
+  namespace: string
+  name: string
+}
+
+export interface GatewayApi {
+  enabled: boolean
+  resources: string[]
+}
+
+export interface GatewayFeatures {
+  api: GatewayApi
+  reference: GatewayApiReference
+}
+
 export interface Cluster {
   uuid: string
   name: string
@@ -11,6 +26,7 @@ export interface Cluster {
       message: string
     }
   }
+  gateway?: GatewayFeatures
   created_at: string
   updated_at: string
 }
@@ -154,12 +170,14 @@ export interface ComponentTemplateConfigUpdate {
   enabled?: boolean
 }
 
+export type VisibilityType = 'public' | 'private' | 'cluster'
+
 export interface ApplicationComponent {
   uuid: string
   name: string
   type: 'webapp' | 'worker' | 'cron'
   settings: Record<string, any> | null
-  is_public: boolean
+  visibility: VisibilityType
   url: string | null
   enabled: boolean
   created_at: string
@@ -171,7 +189,7 @@ export interface ApplicationComponentCreate {
   name: string
   type: 'webapp' | 'worker' | 'cron'
   settings?: Record<string, any> | null
-  is_public?: boolean
+  visibility?: VisibilityType
   url?: string | null
   enabled?: boolean
 }

@@ -12,12 +12,10 @@ metadata:
     type: "web"
 spec:
   ports:
-    {% for endpoint in application.settings.endpoints -%}
-    - name: port-{{endpoint.source_port}}
-      port: {{endpoint.source_port}}
-      protocol: TCP
-      targetPort: {{endpoint.dest_port}}
-    {% endfor %}
+    - name: port-{{ application.settings.exposure.port }}
+      port: {{ application.settings.exposure.port }}
+      protocol: {% if application.settings and application.settings.exposure and application.settings.exposure.type == "udp" %}UDP{% else %}TCP{% endif %}
+      targetPort: {{ application.settings.exposure.port }}
   selector:
     app: "{{ application.component_name }}"
   sessionAffinity: None

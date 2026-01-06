@@ -12,6 +12,7 @@ from app.k8s.client import K8sClient
 from app.services.kubernetes.application_component_manager import (
     KubernetesApplicationComponentManager,
 )
+from app.services.cluster import get_gateway_reference_from_cluster
 
 from sqlalchemy.orm import Session
 from uuid import uuid4
@@ -65,8 +66,10 @@ class InstanceService:
             application_component_serialized = serialize_application_component(application_component)
             component_type = application_component.type.value if hasattr(application_component.type, 'value') else str(application_component.type)
 
+            gateway_reference = get_gateway_reference_from_cluster(cluster)
             kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                application_component_serialized, component_type, db=db
+                application_component_serialized, component_type, db=db,
+                gateway_reference=gateway_reference
             )
 
             k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
@@ -128,9 +131,11 @@ class InstanceService:
                     settings_serialized = serialize_settings(settings)
 
                     k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+                    gateway_reference = get_gateway_reference_from_cluster(cluster)
                     kubernetes_payload = (
                         KubernetesApplicationComponentManager.instance_management(
-                            application_component_serialized, component_type, settings_serialized, db=db
+                            application_component_serialized, component_type, settings_serialized, db=db,
+                            gateway_reference=gateway_reference
                         )
                     )
                     k8s_client.apply_or_delete_yaml_to_k8s(
@@ -157,8 +162,10 @@ class InstanceService:
             settings_serialized = serialize_settings(settings)
 
             k8s_client = K8sClient(url=cluster.api_address, token=cluster.token)
+            gateway_reference = get_gateway_reference_from_cluster(cluster)
             kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                application_component_serialized, component_type, settings_serialized, db=db
+                application_component_serialized, component_type, settings_serialized, db=db,
+                gateway_reference=gateway_reference
             )
             k8s_client.apply_or_delete_yaml_to_k8s(
                 kubernetes_payload, operation="create"

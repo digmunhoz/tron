@@ -14,6 +14,7 @@ import app.schemas.instance as InstanceSchema
 from app.k8s.client import K8sClient
 from app.services.kubernetes.application_component_manager import KubernetesApplicationComponentManager
 from app.helpers.serializers import serialize_application_component, serialize_settings
+from app.services.cluster import get_gateway_reference_from_cluster
 
 
 class InstanceService:
@@ -159,8 +160,10 @@ class InstanceService:
                         if application_name:
                             k8s_client.ensure_namespace_exists(application_name)
 
+                        gateway_reference = get_gateway_reference_from_cluster(cluster)
                         kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                            application_component_serialized, component_type, settings_serialized, db=db
+                            application_component_serialized, component_type, settings_serialized, db=db,
+                            gateway_reference=gateway_reference
                         )
                         k8s_client.apply_or_delete_yaml_to_k8s(
                             kubernetes_payload, operation="delete"
@@ -191,8 +194,10 @@ class InstanceService:
                         if application_name:
                             k8s_client.ensure_namespace_exists(application_name)
 
+                        gateway_reference = get_gateway_reference_from_cluster(cluster)
                         kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                            application_component_serialized, component_type, settings_serialized, db=db
+                            application_component_serialized, component_type, settings_serialized, db=db,
+                            gateway_reference=gateway_reference
                         )
                         k8s_client.apply_or_delete_yaml_to_k8s(
                             kubernetes_payload, operation="upsert"
@@ -227,8 +232,10 @@ class InstanceService:
                         if application_name:
                             k8s_client.ensure_namespace_exists(application_name)
 
+                        gateway_reference = get_gateway_reference_from_cluster(cluster)
                         kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                            application_component_serialized, component_type, settings_serialized, db=db
+                            application_component_serialized, component_type, settings_serialized, db=db,
+                            gateway_reference=gateway_reference
                         )
                         k8s_client.apply_or_delete_yaml_to_k8s(
                             kubernetes_payload, operation="upsert"
@@ -416,10 +423,14 @@ class InstanceService:
                 )
                 settings_serialized = serialize_settings(settings)
 
+                component_cluster = component_cluster_instance.cluster
+                gateway_reference = get_gateway_reference_from_cluster(component_cluster)
+
                 if component.enabled:
                     # Reaplicar componente habilitado no Kubernetes
                     kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                        application_component_serialized, component_type, settings_serialized, db=db
+                        application_component_serialized, component_type, settings_serialized, db=db,
+                        gateway_reference=gateway_reference
                     )
                     k8s_client.apply_or_delete_yaml_to_k8s(
                         kubernetes_payload, operation="upsert"
@@ -428,7 +439,8 @@ class InstanceService:
                 else:
                     # Remover componente desabilitado do Kubernetes
                     kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                        application_component_serialized, component_type, settings_serialized, db=db
+                        application_component_serialized, component_type, settings_serialized, db=db,
+                        gateway_reference=gateway_reference
                     )
                     k8s_client.apply_or_delete_yaml_to_k8s(
                         kubernetes_payload, operation="delete"

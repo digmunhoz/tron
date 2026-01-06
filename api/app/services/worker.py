@@ -14,6 +14,7 @@ from app.services.kubernetes.application_component_manager import (
     KubernetesApplicationComponentManager,
 )
 from app.services.cluster_selection import ClusterSelectionService
+from app.services.cluster import get_gateway_reference_from_cluster
 
 
 class WorkerService:
@@ -111,8 +112,10 @@ class WorkerService:
                     if application_name:
                         k8s_client.ensure_namespace_exists(application_name)
 
+                    gateway_reference = get_gateway_reference_from_cluster(cluster)
                     kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                        application_component_serialized, component_type, settings_serialized, db=db
+                        application_component_serialized, component_type, settings_serialized, db=db,
+                        gateway_reference=gateway_reference
                     )
                     k8s_client.apply_or_delete_yaml_to_k8s(
                         kubernetes_payload, operation="delete"
@@ -138,8 +141,10 @@ class WorkerService:
                     if application_name:
                         k8s_client.ensure_namespace_exists(application_name)
 
+                    gateway_reference = get_gateway_reference_from_cluster(cluster)
                     kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                        application_component_serialized, component_type, settings_serialized, db=db
+                        application_component_serialized, component_type, settings_serialized, db=db,
+                        gateway_reference=gateway_reference
                     )
                     k8s_client.apply_or_delete_yaml_to_k8s(
                         kubernetes_payload, operation="upsert"
@@ -166,8 +171,10 @@ class WorkerService:
                     if application_name:
                         k8s_client.ensure_namespace_exists(application_name)
 
+                    gateway_reference = get_gateway_reference_from_cluster(cluster)
                     kubernetes_payload = KubernetesApplicationComponentManager.instance_management(
-                        application_component_serialized, component_type, settings_serialized, db=db
+                        application_component_serialized, component_type, settings_serialized, db=db,
+                        gateway_reference=gateway_reference
                     )
                     k8s_client.apply_or_delete_yaml_to_k8s(
                         kubernetes_payload, operation="upsert"
@@ -198,13 +205,23 @@ class WorkerService:
             if instance is None:
                 raise HTTPException(status_code=404, detail="Instance not found")
 
+            # Garantir que settings tenha exposure com visibility private
+            settings_dict = worker_create.settings.model_dump()
+            if 'exposure' not in settings_dict:
+                settings_dict['exposure'] = {
+                    'type': 'http',
+                    'port': 80,
+                    'visibility': 'private'
+                }
+            elif 'visibility' not in settings_dict.get('exposure', {}):
+                settings_dict['exposure']['visibility'] = 'private'
+
             db_worker = ApplicationComponentModel.ApplicationComponent(
                 uuid=uuid4(),
                 instance_id=instance.id,
                 name=worker_create.name,
                 type=ApplicationComponentModel.WebappType.worker,
-                settings=worker_create.settings.model_dump(),
-                is_public=False,  # Worker components are never public
+                settings=settings_dict,
                 url=None,  # Worker components don't have URLs
                 enabled=worker_create.enabled,
             )
