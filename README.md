@@ -1,3 +1,5 @@
+**This project has been moved to [https://github.com/grid-labs-tech/tron](https://github.com/grid-labs-tech/tron)**
+
 # Tron - Platform as a Service
 
 PaaS platform built on top of Kubernetes that simplifies application deployment and management.
